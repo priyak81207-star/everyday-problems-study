@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Everyday Problems Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one calm column, like a careful paper questionnaire; the chat screen is the only "app-like" surface. */
+:root{
+  --bg:#f2f4f1; --surface:#ffffff; --ink:#1c2826; --muted:#58676a; --line:#d3dcd8;
+  --accent:#1e6b63; --accent-ink:#ffffff; --bubble:#dfeeea; --me:#1e6b63; --me-ink:#ffffff;
+  --fig:#7e95a5; --fig2:#4d5f6e; --panel:#e6ecea; --alarm:#c4432e; --warn:#c08417; --road:#c9d1cd;
+  --font-body:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111816; --surface:#19221f; --ink:#e3ece9; --muted:#9db0ac; --line:#2c3a36;
+  --accent:#5fbcb0; --accent-ink:#0b1513; --bubble:#203532; --me:#3f9e93; --me-ink:#06110f;
+  --fig:#8da6b7; --fig2:#c0ccd6; --panel:#22302c; --alarm:#ff7b64; --warn:#e5a83e; --road:#33433e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111816; --surface:#19221f; --ink:#e3ece9; --muted:#9db0ac; --line:#2c3a36;
+  --accent:#5fbcb0; --accent-ink:#0b1513; --bubble:#203532; --me:#3f9e93; --me-ink:#06110f;
+  --fig:#8da6b7; --fig2:#c0ccd6; --panel:#22302c; --alarm:#ff7b64; --warn:#e5a83e; --road:#33433e; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.55;-webkit-text-size-adjust:100%}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-in{max-width:720px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.top-name{font-weight:700;font-size:15px;white-space:nowrap}
+.prog{flex:1;height:6px;background:var(--line);border-radius:6px;overflow:hidden;min-width:60px}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+.top-in>*{flex-shrink:0}
+.top-in .prog{flex-shrink:1}
+@media (max-width:520px){.top-name{display:none}}
+.preview{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px;white-space:nowrap}
+main{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:24px 64px}
+h1,h2{line-height:1.2;text-wrap:balance;margin:0 0 12px}
+h1{font-size:28px}
+h2{font-size:23px}
+p{margin:0 0 14px;max-width:62ch}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+.muted{color:var(--muted)}
+.small{font-size:15px}
+.stack{display:flex;flex-direction:column;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+ul.plain{margin:0 0 14px;padding-left:20px}
+ul.plain li{margin-bottom:6px}
+.steps{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:10px;counter-reset:s}
+.steps li{display:flex;gap:12px;align-items:flex-start}
+.steps li::before{counter-increment:s;content:counter(s);flex:0 0 28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;display:grid;place-items:center;font-size:15px}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:13px 22px;background:var(--accent);color:var(--accent-ink);cursor:pointer;min-height:48px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.btn:focus-visible,.opt input:focus-visible+span,textarea:focus-visible,input:focus-visible,.cell:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+label.check{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+label.check input{width:22px;height:22px;margin-top:2px;accent-color:var(--accent);flex:0 0 auto}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend{font-weight:700;margin-bottom:8px;padding:0}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{position:relative}
+.opt input{position:absolute;opacity:0;inset:0}
+.opt span{display:block;padding:10px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;min-height:44px}
+.opts.col{flex-direction:column}
+.opts.col .opt span{width:100%}
+.opt input:checked+span{border-color:var(--accent);background:var(--bubble);font-weight:700}
+.scale{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px}
+.scale .opt span{text-align:center;padding:10px 0;font-family:var(--font-mono);font-weight:600}
+.scale-ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:4px;gap:10px}
+input[type=text],input[type=number],textarea,select{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;max-width:100%}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.rangeval{font-family:var(--font-mono);font-weight:600}
+.field label{display:block;font-weight:700;margin-bottom:6px}
+main:focus{outline:none}
+.err{color:var(--alarm);font-size:15px;min-height:1em}
+
+/* Number to remember */
+.digits{font-family:var(--font-mono);font-size:clamp(44px,13vw,72px);font-weight:600;letter-spacing:.18em;text-align:center;padding:28px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.dots{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--accent);transition:opacity .2s}
+.dots i.off{opacity:.2}
+
+/* Picture stories */
+.strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:640px){.strip{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.strip svg{width:100%;height:auto;display:block}
+.beat{max-width:520px;width:100%;margin:0 auto}
+.beat svg{width:100%;height:auto;display:block}
+.narr{font-size:21px;line-height:1.5;max-width:34ch;margin:0 auto;text-align:center;text-wrap:balance}
+.told{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:640px){.told{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.told figure{margin:0;display:flex;flex-direction:column;gap:6px}
+.told svg{width:100%;height:auto;display:block}
+.told figcaption{font-size:14px;line-height:1.4;color:var(--muted)}
+.strip.mini{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.pbg{fill:var(--panel)}
+.ln{stroke:var(--ink);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.thin{stroke:var(--ink);fill:none;stroke-width:1.6;stroke-linecap:round}
+.figln{stroke:var(--fig);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.fig{fill:var(--fig)}
+.fig2{fill:var(--fig2)}
+.dash{stroke:var(--ink);fill:none;stroke-width:1.6;stroke-dasharray:3 3}
+.stopbtn{font:inherit;font-size:14px;font-weight:700;background:none;border:1.5px solid var(--line);color:var(--muted);border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.support{border-color:var(--accent);border-width:2px}
+.fig2ln{stroke:var(--fig2);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ink{fill:var(--ink)}
+.red{fill:var(--alarm)}
+.redln{stroke:var(--alarm);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.soft{fill:var(--surface)}
+.softst{fill:var(--surface);stroke:var(--ink);stroke-width:2}
+.acc{fill:var(--accent)}
+.warnf{fill:var(--warn)}
+.road{fill:var(--road)}
+.stair{fill:var(--road)}
+.pnum{fill:var(--ink)}
+.pnumt{fill:var(--bg);font:700 12px var(--font-body)}
+.svgtxt{font-family:var(--font-mono);font-weight:600}
+
+/* Chat */
+.chat{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-height:330px}
+.chat-head{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:0 0 auto}
+.who{flex:1;min-width:0;line-height:1.25}
+.who b{display:block}
+.status{font-size:13px;color:var(--muted)}
+.status i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3fa35b;margin-right:6px;vertical-align:middle}
+.clock{font-family:var(--font-mono);font-weight:600;font-size:22px;padding:4px 10px;border-radius:10px;background:var(--bubble);font-variant-numeric:tabular-nums}
+.clock.low{background:var(--alarm);color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.75}}
+@media (prefers-reduced-motion:reduce){.clock.low{animation:none}.prog i{transition:none}}
+.batt{display:flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--alarm)}
+.sys{align-self:center;font-size:13px;color:var(--alarm);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+.dead{position:absolute;inset:0;background:#000;color:#9aa3a1;display:grid;place-items:center;font-weight:700;z-index:2}
+.tbar{height:5px;background:var(--line)}
+.tbar i{display:block;height:100%;background:var(--accent);width:100%}
+.tbar.low i{background:var(--alarm)}
+.msgs{flex:1;padding:16px 14px;display:flex;flex-direction:column;gap:8px;min-height:120px}
+.bub{max-width:82%;padding:10px 13px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.bub.them{background:var(--bubble);border-bottom-left-radius:4px;align-self:flex-start}
+.bub.me{background:var(--me);color:var(--me-ink);border-bottom-right-radius:4px;align-self:flex-end}
+.sent{align-self:flex-end;font-size:13px;color:var(--muted)}
+.composer{display:flex;gap:8px;align-items:flex-end;padding:10px;border-top:1px solid var(--line)}
+.composer textarea{resize:none;min-height:48px;max-height:180px;border-radius:22px;padding:12px 16px;line-height:1.4}
+.send{flex:0 0 48px;height:48px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;cursor:pointer}
+.send:disabled{opacity:.35;cursor:not-allowed}
+.hint{font-size:14px;color:var(--warn);min-height:1.2em;margin:6px 2px 0}
+.quote{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--me);border-radius:10px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.quote.ai{border-left-color:var(--accent);background:var(--bubble)}
+
+/* Puzzle */
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:360px;margin:0 auto}
+.cell{aspect-ratio:1;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;display:grid;place-items:center;cursor:pointer;padding:0}
+.cell svg{width:58%;height:58%}
+.cell .shape{fill:var(--accent)}
+
+.lexword{font-family:var(--font-mono);font-size:clamp(34px,10vw,52px);font-weight:600;margin:24px 0}
+.lexbtn{min-width:120px}
+.code{font-family:var(--font-mono);font-size:22px;font-weight:600;letter-spacing:.06em}
+pre.dump{max-height:240px;overflow:auto;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="top"><div class="top-in"><span class="top-name" id="topname">Everyday Problems Study</span><div class="prog" aria-hidden="true"><i id="prog"></i></div><span class="preview" id="previewTag" hidden>Preview</span><span id="stopSlot" hidden><button class="stopbtn" id="stopBtn" type="button">Stop</button></span></div></div>
+<main id="app" tabindex="-1"></main>
+
+<script>
+/* =========================================================================
+   SETTINGS — edit these before you share the link (see README.md)
+   ========================================================================= */
+const CONFIG = {
+  studyName: 'Everyday Problems Study',
+  researcherName: 'Priyadarshini, Research Scholar (Information Systems)',
+  researcherEmail: 'ms25d025@smail.iitm.ac.in',
+  institution: 'Department of Management Studies (DoMS), IIT Madras',
+  // Where responses go: 'datapipe' (OSF via pipe.jspsych.org) or 'gsheet' (Google Apps Script).
+  // Leave '' to run in PREVIEW mode: nothing is saved anywhere.
+  saveMode: 'gsheet',
+  datapipeExperimentID: '',
+  gsheetUrl: 'https://script.google.com/macros/s/AKfycbyLnsYVTIm2wv8yClZoG3lZ6U6X2yOUJ73Wed26RoWcYP5Ju_VZpFftXKDw5RYAmK_e/exec',
+  taskBSeconds: 30,        // time limit for the quick (Task B) messages; check in the pilot that most people finish a sentence
+  batteryCue: true,        // the phone in the story is almost out of battery: the reason to hurry, and it 'switches off' at 0
+  sound: true,             // a soft tick each second in the last 10 seconds (only if the device sound is on)
+  vibrate: true,           // a short buzz at 10 and 5 seconds left (Android phones)
+  digitShowMs: 4000,       // how long the number is shown
+  // Which stories to use. One story (default) keeps the session to about 15 minutes.
+  // Other stories built in: 'home', 'health', 'fraud', 'rider'. Each extra story adds about 5 minutes.
+  scenarios: ['distress'],
+  beatMinMs: 2500,         // earliest "Next" on each picture of the story (reading is NOT timed)
+  trustQuestions: true,    // optional add-on: scripted reply + trust items
+  lextale: true,           // built-in LexTALE vocabulary test at the end (about 4 minutes)
+  puzzleTrials: 8
+};
+const VERSION = '1.0.0';
+
+/* ========================================================================= */
+const $ = (s, r=document) => r.querySelector(s);
+const app = $('#app');
+const params = new URLSearchParams(location.search);
+const PREVIEW = params.has('test') || !CONFIG.saveMode;
+const now = () => performance.now();
+const iso = () => new Date().toISOString();
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const isTouch = matchMedia('(pointer: coarse)').matches;
+function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+function makeId(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s='P'; const b=new Uint32Array(8); crypto.getRandomValues(b); b.forEach(v=>s+=c[v%c.length]); return s; }
+
+const pid = (params.get('pid')||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,40) || makeId();
+
+/* Scenario keys are internal only — never shown to participants. */
+const SCENARIOS = CONFIG.scenarios;
+const NS = SCENARIOS.length;
+const DISTRESS = SCENARIOS.includes('distress');
+const WORDS = ['one','two','three','four'];
+const REPLIES = { // scripted replies to the broad reading (trust add-on only)
+  distress: "I'm sorry you're feeling stressed. A few things often help: a short walk, a regular bedtime, less screen time before sleep, and talking to a friend. Would you like some simple breathing exercises?",
+  home: "I'm sorry things are difficult in your marriage. If you have decided on a divorce, a family lawyer can explain the process, the documents you need and how long it usually takes. Would you like an overview of the steps?",
+  health: "Sorry you're not feeling well. Rest, drink some water and try to get some sleep. If you still feel unwell tomorrow, it's a good idea to see a doctor.",
+  fraud: "I can help with your bank account. You can check your recent transactions in your bank's app, and contact your branch during working hours if something looks wrong.",
+  rider: "Sorry about the problem with your order. You can report an issue from the Orders tab, and our team will review it within 24 to 48 hours."
+};
+
+const D = {
+  pid, version: VERSION, preview: PREVIEW, startedAt: iso(), completedAt: null,
+  device: { ua: navigator.userAgent, w: innerWidth, h: innerHeight, touch: isTouch, lang: navigator.language },
+  order: shuffle(SCENARIOS), consent: null, about: {}, practice: null,
+  taskB: {}, puzzle: null, taskA: {}, post: {}, language: {}, awareness: {},
+  screenTimes: [], saves: [], withdrawn: false,
+  settings: { taskBSeconds: CONFIG.taskBSeconds, batteryCue: CONFIG.batteryCue, sound: CONFIG.sound, vibrate: CONFIG.vibrate, scenarios: CONFIG.scenarios }
+};
+
+/* ---------- progress ---------- */
+const TOTAL_STEPS = 11 + 3*NS; let stepNo = 0;
+function progress(){ stepNo++; $('#prog').style.width = Math.min(100, stepNo/TOTAL_STEPS*100) + '%'; }
+if (PREVIEW) $('#previewTag').hidden = false;
+$('#topname').textContent = CONFIG.studyName;
+
+let screenStart = now(), screenName = 'start';
+let STOPPED = false;
+function render(html, name){
+  if (STOPPED && name !== 'stopped') return;
+  D.screenTimes.push([screenName, Math.round(now()-screenStart)]);
+  screenStart = now(); screenName = name || '';
+  currentGate = null; app.innerHTML = html; scrollTo(0,0); app.focus({preventScroll:true});
+}
+const clicked = sel => new Promise(r => $(sel).addEventListener('click', r, {once:true}));
+
+let inProgress = true;
+addEventListener('beforeunload', e => { if (inProgress && !PREVIEW) { e.preventDefault(); e.returnValue = ''; } });
+
+/* =========================================================================
+   PICTURE STORIES — wordless, gender-neutral figure
+   ========================================================================= */
+function face(t){
+  const e = `<circle class="ink" cx="-4.5" cy="-1" r="1.7"/><circle class="ink" cx="4.5" cy="-1" r="1.7"/>`;
+  const m = {
+    n:`<path class="thin" d="M-4 6.5h8"/>`,
+    pain:`<path class="thin" d="M-5 7l2.5-2 2.5 2 2.5-2 2.5 2"/><path class="thin" d="M-8-6l5 2M8-6l-5 2"/>`,
+    worry:`<path class="thin" d="M-4.5 8q4.5-4 9 0"/><path class="thin" d="M-8-5l5-2M8-5l-5-2"/>`,
+    smile:`<path class="thin" d="M-4 5q4 4 8 0"/>`,
+    angry:`<path class="thin" d="M-5 8q5-3 10 0"/><path class="thin" stroke-width="2.2" d="M-9-7l6 3M9-7l-6 3"/>`,
+    shock:`<circle class="ink" cx="0" cy="7" r="2.4"/><path class="thin" d="M-8-7l5 1M8-7l-5 1"/>`
+  }[t||'n'];
+  return e + m;
+}
+const ARMS = {
+  down:`<path d="M-12 21L-18 48M12 21L18 48"/>`,
+  chest:`<path d="M-12 21L-18 48M12 21Q18 38 1 33"/>`,
+  ear:`<path d="M-12 21L-18 48M12 21Q24 10 11 1"/>`,
+  front:`<path d="M-12 21Q-15 36-3 35M12 21Q15 36 3 35"/>`,
+  head:`<path d="M-12 21Q-26 6-12-6M12 21Q26 6 12-6"/>`,
+  knee:`<path d="M-12 21Q-4 48 16 51M12 21Q22 38 22 49"/>`,
+  ride:`<path d="M-11 21Q4 30 20 26M11 21Q20 26 24 24"/>`,
+  point:`<path d="M-12 21L-18 48M12 21L36 13"/>`,
+  raise:`<path d="M-12 21L-18 48M12 21Q30 8 26-16"/>`,
+  cheek:`<path d="M12 21L18 48M-12 21Q-24 8-12 2"/>`,
+  shield:`<path d="M-12 21Q-24 8-12-2M12 21L18 48"/>`
+};
+function person(x, y, s, o={}){
+  const legs = o.sit
+    ? `<path class="figln" stroke-width="8" d="M-5 53H20L22 80M5 53H24L27 80"/>`
+    : `<path class="figln" stroke-width="8" d="M-6 53L-8 88M6 53L8 88"/>`;
+  const helmet = o.helmet ? `<path class="acc" d="M-15-2A15 15 0 0 1 15-2Z"/><path class="thin" d="M-15-2H15"/>` : '';
+  return `<g transform="translate(${x} ${y}) scale(${s})">${legs}
+    <rect class="fig" x="-13" y="15" width="26" height="40" rx="10"/>
+    <g class="figln" stroke-width="6">${ARMS[o.arms||'down']}</g>
+    <circle class="fig" cx="0" cy="0" r="13"/>${helmet}${face(o.face)}${o.extra||''}</g>`.replace(o.dark ? /class="fig(ln)?"/g : /$^/, (m, l) => `class="fig2${l||''}"`);
+}
+function clock(cx, cy, minutes, elapsed, hour=9){
+  const ang = m => (m/60)*2*Math.PI - Math.PI/2;
+  const mx = cx + 10*Math.cos(ang(minutes)), my = cy + 10*Math.sin(ang(minutes));
+  const ha = ((hour + minutes/60)/12)*2*Math.PI - Math.PI/2;
+  const hx = cx + 6.5*Math.cos(ha), hy = cy + 6.5*Math.sin(ha);
+  let wedge = '';
+  if (elapsed){ const ex = cx + 14*Math.cos(ang(elapsed)), ey = cy + 14*Math.sin(ang(elapsed));
+    wedge = `<path class="red" opacity=".35" d="M${cx} ${cy}L${cx} ${cy-14}A14 14 0 0 1 ${ex.toFixed(1)} ${ey.toFixed(1)}Z"/>`; }
+  return `<circle class="softst" cx="${cx}" cy="${cy}" r="15"/>${wedge}<path class="ln" stroke-width="2" d="M${cx} ${cy}L${mx.toFixed(1)} ${my.toFixed(1)}M${cx} ${cy}L${hx.toFixed(1)} ${hy.toFixed(1)}"/>`;
+}
+const bank = (x,y,cls='acc') => `<g transform="translate(${x} ${y})"><path class="${cls}" d="M-12 -2L0-11L12-2Z"/><rect class="${cls}" x="-10" y="0" width="3" height="10"/><rect class="${cls}" x="-1.5" y="0" width="3" height="10"/><rect class="${cls}" x="7" y="0" width="3" height="10"/><rect class="${cls}" x="-12" y="11" width="24" height="3"/></g>`;
+const ring = (x,y,cls='ln') => `<path class="${cls}" stroke-width="2" d="M${x} ${y-8}q6 8 0 16M${x+6} ${y-13}q10 13 0 26"/>`;
+function phone(x,y,w,h,inner){ return `<rect class="ink" x="${x}" y="${y}" width="${w}" height="${h}" rx="8"/><rect class="soft" x="${x+4}" y="${y+8}" width="${w-8}" height="${h-16}" rx="3"/>${inner||''}`; }
+
+function panel(n, inner){
+  return `<svg viewBox="0 0 200 150" role="img" aria-label="Picture ${n} of 4" focusable="false"><rect class="pbg" width="200" height="150" rx="10"/>${inner}<circle class="pnum" cx="16" cy="16" r="10"/><text class="pnumt" x="16" y="20" text-anchor="middle">${n}</text></svg>`;
+}
+
+const knife = (x,y) => `<g transform="translate(${x} ${y}) rotate(-15)"><path class="softst" stroke-width="1.8" d="M0-5H24Q34-5 40 5H0Z"/><rect class="ink" x="-3" y="-8" width="4" height="16" rx="1"/><rect class="ink" x="-18" y="-4" width="15" height="9" rx="3"/></g>`;
+const rings = (x,y) => `<circle class="ln" stroke-width="2.2" cx="${x-8}" cy="${y+3}" r="6"/><path class="warnf" d="M${x-8} ${y-8}l3.5 3.5-3.5 3.5-3.5-3.5z"/><circle class="ln" stroke-width="2.2" cx="${x+10}" cy="${y+3}" r="6"/><path class="warnf" d="M${x+10} ${y-8}l3.5 3.5-3.5 3.5-3.5-3.5z"/><path class="redln" stroke-width="2" d="M${x+1} ${y-8}l-2 5 3 2-2 5 2 4"/>`;
+const mini = (x,y,cls='fig') => `<circle class="${cls}" cx="${x}" cy="${y}" r="6"/><rect class="${cls}" x="${x-6}" y="${y+8}" width="12" height="17" rx="5"/><path class="thin" stroke-width="1.2" d="M${x-2.5} ${y+1.5}q2.5 2.5 5 0"/>`;
+const calendarX = (x,y,marks) => `<rect class="softst" x="${x}" y="${y}" width="44" height="40" rx="3"/><rect class="red" x="${x}" y="${y}" width="44" height="7"/><path class="thin" d="M${x+11} ${y+7}v33M${x+22} ${y+7}v33M${x+33} ${y+7}v33M${x} ${y+18}h44M${x} ${y+29}h44"/>`
+  + marks.map(([c,r]) => { const cx = x+2+c*11, cy = y+9+r*11; return `<path class="redln" stroke-width="1.5" d="M${cx} ${cy}l7 7M${cx+7} ${cy}l-7 7"/>`; }).join('');
+const STORIES = {
+  distress: [
+    // 1 awake at 3 a.m.; a calendar of many crossed-out days
+    `<rect class="softst" x="28" y="18" width="40" height="34" rx="3"/><path class="thin" d="M48 18v34M28 35h40"/><circle class="warnf" cx="40" cy="27" r="5"/><circle class="pbg" cx="43" cy="25" r="4.4"/>`
+      + calendarX(92,12,[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2]]) + clock(174,28,0,0,3)
+      + `<rect class="road" x="30" y="84" width="14" height="44" rx="3"/><rect class="road" x="30" y="112" width="160" height="16" rx="4"/><rect class="softst" x="44" y="100" width="22" height="12" rx="5"/>`
+      + `<g transform="translate(58 104) rotate(-90)">${person(0,0,0.62,{face:'worry'})}</g>`
+      + `<rect class="acc" opacity=".55" x="78" y="92" width="104" height="22" rx="6"/>`,
+    // 2 daytime; two full plates left untouched
+    `<rect class="softst" x="126" y="12" width="48" height="34" rx="3"/><path class="thin" d="M150 12v34M126 29h48"/><circle class="warnf" cx="138" cy="21" r="5"/>`
+      + `<rect class="ink" x="86" y="96" width="108" height="5" rx="2"/><path class="ln" d="M96 101v36M184 101v36"/>`
+      + `<ellipse class="softst" cx="116" cy="90" rx="16" ry="5"/><circle class="warnf" cx="111" cy="87" r="3.5"/><circle class="warnf" cx="119" cy="86" r="4"/><circle class="acc" cx="124" cy="88" r="2.5"/>`
+      + `<ellipse class="softst" cx="162" cy="90" rx="16" ry="5"/><circle class="warnf" cx="157" cy="87" r="3.5"/><circle class="warnf" cx="165" cy="86" r="4"/><circle class="acc" cx="170" cy="88" r="2.5"/>`
+      + person(56,50,0.85,{sit:true,face:'worry'}),
+    // 3 calls from work go unanswered; the work bag stays by the door
+    `<rect class="softst" x="160" y="26" width="32" height="110" rx="2"/><circle class="ink" cx="166" cy="84" r="2"/>`
+      + `<rect class="warnf" x="132" y="112" width="24" height="18" rx="3"/><path class="ln" stroke-width="2" d="M139 112v-5h10v5"/>`
+      + `<rect class="road" x="62" y="104" width="76" height="14" rx="4"/>` + person(96,46,0.85,{sit:true,arms:'front',face:'worry'})
+      + phone(16,56,34,58,`<rect class="warnf" x="26" y="74" width="14" height="10" rx="2"/><path class="ln" stroke-width="1.6" d="M30 74v-3h6v3"/>`)
+      + `<circle class="red" cx="48" cy="56" r="9"/><text class="svgtxt" fill="#fff" x="48" y="60" text-anchor="middle" font-size="11">9</text>` + ring(56,84),
+    // 4 late at night; the thought: the others, happy, and an empty space where you were
+    `<circle class="warnf" cx="24" cy="44" r="7"/><circle class="pbg" cx="28" cy="41" r="6"/>`
+      + `<rect class="road" x="8" y="120" width="70" height="14" rx="4"/>` + person(50,58,0.78,{sit:true,arms:'front',face:'worry',extra:`<rect class="ink" x="-6" y="24" width="12" height="18" rx="2"/><rect class="acc" x="-4" y="27" width="8" height="12" rx="1"/>`})
+      + `<circle class="softst" stroke-width="1.6" cx="70" cy="40" r="2.5"/><circle class="softst" stroke-width="1.6" cx="78" cy="31" r="3.5"/>`
+      + `<rect class="softst" stroke-width="1.6" x="86" y="10" width="106" height="66" rx="18"/>`
+      + mini(106,28) + mini(126,26,'fig2') + `<circle class="dash" cx="148" cy="28" r="6"/><rect class="dash" x="142" y="36" width="12" height="17" rx="5"/>` + mini(170,28)
+      + `<path class="warnf" d="M138 64l2 4 4 1-4 1-2 4-2-4-4-1 4-1z"/><path class="warnf" d="M118 62l1.5 3 3 1-3 1-1.5 3-1.5-3-3-1 3-1z"/>`
+  ],
+  home: [
+    // 1 evening at home; the spouse shouts
+    clock(178,26,0,0,8)
+      + person(62,46,0.92,{dark:true,arms:'point',face:'angry'})
+      + `<g transform="translate(78 -2)"><path class="softst" stroke-width="1.6" d="M18 8l8 6 6-8 4 9 9-5-2 10 10 2-9 6 5 8-10-2-2 9-6-7-8 5 1-9-9-2 8-5z"/><path class="redln" stroke-width="1.8" d="M24 20l4-4 3 6 4-5 3 5"/></g>`
+      + person(148,62,0.82,{arms:'front',face:'worry'}),
+    // 2 it turns physical; a calendar with earlier marked days
+    `<rect class="softst" x="146" y="14" width="44" height="40" rx="3"/><rect class="red" x="146" y="14" width="44" height="7"/>`
+      + `<path class="thin" d="M157 21v33M168 21v33M179 21v33M146 32h44M146 43h44"/>`
+      + `<path class="redln" stroke-width="1.6" d="M148 23l7 7M155 23l-7 7M170 34l7 7M177 34l-7 7M159 45l7 7M166 45l-7 7"/>`
+      + person(58,44,0.95,{dark:true,arms:'raise',face:'angry'})
+      + person(112,52,0.9,{arms:'cheek',face:'pain',extra:`<path class="red" d="M-19 -12l3 4 5-2-2 5 5 3-5 1 1 5-4-3-3 4-1-5-5-1 4-3-2-5 5 2z"/>`}),
+    // 3 a threat; the spouse leaves the room
+    `<rect class="softst" x="160" y="30" width="30" height="106" rx="2"/><circle class="ink" cx="166" cy="86" r="2"/>`
+      + person(140,48,0.9,{dark:true,arms:'point',face:'angry'})
+      + `<path class="softst" stroke-width="1.6" d="M82 10h56a8 8 0 0 1 8 8v18a8 8 0 0 1-8 8h-2l2 10-12-10h-44a8 8 0 0 1-8-8v-18a8 8 0 0 1 8-8z"/>` + knife(106,28)
+      + person(48,56,0.85,{arms:'shield',face:'shock'}),
+    // 4 late at night, outside; not going back; the marriage is over
+    `<path class="road" d="M10 150V70l40-28 40 28v80z"/><rect class="warnf" x="38" y="78" width="24" height="22" rx="2"/><path class="fig2" d="M50 100v-10a5 5 0 0 1 10 0v10z"/><rect class="ink" opacity=".75" x="64" y="108" width="18" height="42" rx="2"/>`
+      + `<circle class="warnf" cx="180" cy="20" r="8"/><circle class="pbg" cx="184" cy="17" r="7"/>`
+      + person(140,70,0.75,{arms:'front',face:'worry',extra:`<rect class="ink" x="-6" y="24" width="12" height="18" rx="2"/><rect class="acc" x="-4" y="27" width="8" height="12" rx="1"/>`})
+      + `<rect class="softst" stroke-width="1.6" x="98" y="10" width="74" height="40" rx="14"/><circle class="softst" stroke-width="1.6" cx="128" cy="56" r="3"/><circle class="softst" stroke-width="1.6" cx="134" cy="62" r="2"/>`
+      + `<path class="ln" stroke-width="2" d="M108 38v-12l10-8 10 8v12z"/><path class="redln" stroke-width="2.4" d="M106 16l24 26M130 16l-24 26"/>` + rings(152,30)
+  ],
+  practice: [
+    person(70,38,0.95,{extra:`<path class="thin" d="M-20 38q-4 4 0 8M20 38q4 4 0 8"/>`})
+      + `<circle class="softst" cx="140" cy="45" r="26"/><circle class="softst" cx="108" cy="72" r="5"/><circle class="softst" cx="98" cy="84" r="3"/><path class="acc" d="M124 45h32a16 14 0 0 1-32 0z"/><path class="thin" d="M134 37q-3-5 0-9M142 37q-3-5 0-9M150 37q-3-5 0-9"/>`,
+    `<rect class="softst" x="92" y="18" width="62" height="120" rx="6"/><path class="thin" d="M98 60h50M98 95h50"/><path class="softst" d="M154 22l26 10v100l-26 6z"/>`
+      + person(50,40,0.95,{arms:'down',face:'worry'}),
+    `<rect class="softst" x="80" y="18" width="100" height="78" rx="4"/><path class="thin" d="M130 18v78M80 57h100"/><path class="thin" d="M95 30l-4 10M112 34l-4 10M146 30l-4 10M164 36l-4 10M100 66l-4 10M150 68l-4 10M120 70l-4 10"/>`
+      + person(45,48,0.95,{face:'worry'}),
+    phone(70,12,60,126, `<circle class="acc" cx="100" cy="60" r="18"/><path class="soft" d="M88 60h24a12 10 0 0 1-24 0z"/><rect class="acc" x="82" y="92" width="36" height="12" rx="6"/><rect class="acc" x="82" y="110" width="36" height="12" rx="6" opacity=".5"/>`)
+  ],
+  health: [
+    `<path class="stair" d="M10 150V128H55V106H95V84H135V62H190V150Z"/>` + person(115,13,0.8,{arms:'down'}) + clock(172,30,0,0,11),
+    `<path class="stair" d="M150 150V96H200V150Z"/>` + person(100,40,1,{arms:'chest',face:'pain',extra:`<path class="redln" d="M-22 22q-5 10 0 20M22 22q5 10 0 20"/><path class="acc" d="M17-10q4 6 0 8q-4-2 0-8z"/><path class="acc" d="M-19-6q4 6 0 8q-4-2 0-8z"/><circle class="ink" opacity=".45" cx="2" cy="33" r="5"/><circle class="softst" stroke-width="1.2" cx="17" cy="9" r="2.6"/><circle class="softst" stroke-width="1.2" cx="23" cy="5" r="3.4"/><circle class="softst" stroke-width="1.2" cx="31" cy="1" r="4.2"/>`}),
+    person(100,26,1.65,{arms:'down',face:'pain',extra:`<path class="red" d="M-2 27l3 5 6-2-3 6 5 4-6 1 1 6-5-4-4 4 0-6-6-1 5-4-3-6 6 2z"/><path class="redln" stroke-width="1.8" d="M14 23l4 4-3 4 4 4-3 4 4 4-3 4"/><path class="acc" d="M16-12q3 5 0 7q-3-2 0-7z"/><path class="acc" d="M-15-9q3 5 0 7q-3-2 0-7z"/>`}),
+    `<rect class="softst" x="12" y="22" width="52" height="44" rx="3"/><path class="thin" d="M38 22v44M12 44h52"/><circle class="warnf" cx="26" cy="33" r="6"/><circle class="pbg" cx="29" cy="31" r="5"/><circle class="warnf" cx="52" cy="54" r="1.5"/><circle class="warnf" cx="48" cy="32" r="1.2"/>`
+      + `<rect class="road" x="88" y="110" width="104" height="16" rx="4"/><rect class="road" x="88" y="96" width="22" height="16" rx="4"/>`
+      + person(118,52,0.85,{sit:true,arms:'front',face:'worry',extra:`<rect class="ink" x="-6" y="24" width="12" height="18" rx="2"/><rect class="acc" x="-4" y="27" width="8" height="12" rx="1"/>`})
+      + clock(172,30,20,20,11)
+      + `<circle class="softst" cx="152" cy="74" r="14"/><circle class="softst" cx="140" cy="92" r="3"/><path class="warnf" d="M142 79a10 10 0 0 1 20 0z"/><path class="thin" d="M140 79h24"/><text class="svgtxt ink" x="152" y="71" text-anchor="middle" font-size="11">?</text>`
+  ],
+  fraud: [
+    person(55,38,0.95,{face:'n'}) + phone(115,22,56,104, bank(143,58) + `<rect class="red" x="124" y="98" width="16" height="12" rx="6"/><rect class="acc" x="146" y="98" width="16" height="12" rx="6"/>`) + ring(176,40),
+    person(50,40,0.95,{arms:'ear'}) + `<rect class="softst" x="86" y="16" width="104" height="34" rx="12"/><path class="softst" d="M92 44l-10 12 18-6z"/><text class="svgtxt ink" x="138" y="39" text-anchor="middle" font-size="15">4 8 1 9 2 7</text>`
+      + phone(122,64,50,80, `<rect class="ink" x="139" y="80" width="16" height="13" rx="2"/><path class="ln" stroke-width="2.2" d="M142 80v-4a5 5 0 0 1 10 0v4"/><text class="svgtxt ink" x="147" y="112" text-anchor="middle" font-size="10">481927</text>`),
+    person(40,58,0.75,{arms:'head',face:'shock'}) + phone(82,12,66,126, bank(115,36) + `<text class="svgtxt red" x="115" y="76" text-anchor="middle" font-size="11.5">−₹48,000</text><path class="red" d="M108 88h14v18h9l-16 16-16-16h9z"/>`)
+      + `<g transform="rotate(-18 170 60)"><rect class="acc" x="156" y="52" width="28" height="15" rx="2"/><text class="svgtxt soft" x="170" y="63" text-anchor="middle" font-size="10">₹</text></g><g transform="rotate(14 178 100)"><rect class="acc" x="164" y="92" width="28" height="15" rx="2" opacity=".75"/></g><path class="thin" d="M152 70l-8 2M154 104l-8-1"/>`,
+    person(55,40,0.95,{arms:'head',face:'worry',extra:`<path class="acc" d="M17-12q4 6 0 8q-4-2 0-8z"/>`}) + phone(115,22,56,104, bank(143,58,'red') + `<rect class="red" x="124" y="98" width="16" height="12" rx="6"/><rect class="acc" x="146" y="98" width="16" height="12" rx="6"/>`) + ring(176,40,'redln')
+      + `<circle class="red" cx="170" cy="26" r="10"/><text class="svgtxt" fill="#fff" x="170" y="30" text-anchor="middle" font-size="12">3</text>`
+  ],
+  rider: [
+    `<rect class="road" y="118" width="200" height="32"/><path class="thin" stroke-dasharray="10 9" d="M0 134H200"/><ellipse class="ink" opacity=".55" cx="168" cy="124" rx="18" ry="4"/>`
+      + `<path class="thin" d="M14 70h20M8 82h22M16 94h16"/>`
+      + `<rect class="warnf" x="44" y="62" width="28" height="26" rx="3"/><path class="acc" d="M60 98h46l12-24h8l-8 30H60z"/><circle class="ink" cx="66" cy="108" r="10"/><circle class="ink" cx="118" cy="108" r="10"/>`
+      + person(88,48,0.72,{sit:true,arms:'ride',helmet:true}),
+    `<rect class="road" y="118" width="200" height="32"/><path class="ln" opacity=".5" d="M20 126q40-6 70-2M24 133q40-5 70-1"/>`
+      + `<g transform="rotate(62 112 112)"><path class="acc" d="M92 108h46l10-20h8l-6 26H92z"/><circle class="ink" cx="98" cy="118" r="9"/><circle class="ink" cx="146" cy="118" r="9"/></g>`
+      + `<g transform="rotate(-20 160 96)"><rect class="warnf" x="148" y="84" width="26" height="22" rx="3"/></g><circle class="warnf" cx="178" cy="118" r="5"/><circle class="warnf" cx="190" cy="126" r="4"/><circle class="warnf" cx="166" cy="128" r="4"/>`
+      + `<g transform="rotate(-72 58 104)">${person(58,104,0.62,{helmet:true,face:'shock'})}</g>`,
+    `<rect class="road" y="118" width="200" height="32"/>` + person(92,46,0.95,{sit:true,arms:'knee',face:'pain',helmet:true,extra:`<circle class="red" cx="22" cy="57" r="4.5"/><circle class="red" cx="26" cy="66" r="2.4"/><circle class="red" cx="20" cy="72" r="2"/>`})
+      + `<rect class="warnf" x="150" y="96" width="24" height="22" rx="3" opacity=".8"/>`,
+    phone(56,8,88,136, `<rect class="acc" x="60" y="16" width="80" height="14"/><circle class="red" cx="132" cy="14" r="9"/><text class="svgtxt" fill="#fff" x="132" y="18" text-anchor="middle" font-size="11">3</text>`
+      + `<rect class="pbg" x="64" y="36" width="72" height="20" rx="4"/><rect class="warnf" x="68" y="40" width="12" height="12" rx="2"/><circle class="softst" cx="124" cy="46" r="6"/><path class="thin" d="M124 42v4h3"/>`
+      + `<rect class="pbg" x="64" y="60" width="72" height="20" rx="4"/><rect class="warnf" x="68" y="64" width="12" height="12" rx="2"/><circle class="softst" cx="124" cy="70" r="6"/><path class="thin" d="M124 66v4h3"/>`
+      + `<rect class="pbg" x="64" y="84" width="72" height="20" rx="4"/><rect class="warnf" x="68" y="88" width="12" height="12" rx="2"/><circle class="softst" cx="124" cy="94" r="6"/><path class="thin" d="M124 90v4h3"/>`
+      + `<path class="ink" d="M90 116c2-3 6-3 7 0l-2 4c3 5 5 7 9 9l4-2c3 1 3 5 0 7-12 2-23-9-18-18z"/><path class="redln" d="M86 112l28 26"/>`)
+  ]
+};
+const NARRATION = {
+  distress: [
+    'It is very late. The house is quiet, and your thoughts will not slow down.',
+    'The next day, everything feels heavy. Even small things take too much effort.',
+    'Your phone keeps buzzing. You let it ring.',
+    'Tonight, one thought keeps coming back. You pick up your phone and open the help assistant.'
+  ],
+  home: [
+    'It is evening. Your spouse comes home angry. The shouting starts, and you try to keep things calm.',
+    'Things go too far. Afterwards, the house goes very quiet.',
+    'Before leaving the room, your spouse says something you cannot stop thinking about.',
+    'Now it is late, and you are outside. You take out your phone and open the help assistant.'
+  ],
+  practice: ['You come home after work. You are hungry.', 'There is nothing in the fridge.', 'It is raining hard outside.', 'You open the help assistant on your phone.'],
+  health: [
+    'It is late at night. You climb the stairs to your room after a long day. The house is quiet.',
+    'Halfway up, you have to stop and wait. Something is not right.',
+    'You sit down for a while, but it does not go away. If anything, it is getting worse.',
+    'Everyone at home is asleep. The clinic opens only in the morning. You pick up your phone and open the help assistant.'
+  ]
+};
+function strip(key, mini){ return `<div class="strip${mini?' mini':''}" aria-label="Picture story, 4 pictures">${STORIES[key].map((p,i)=>panel(i+1,p)).join('')}</div>`; }
+
+/* =========================================================================
+   UI HELPERS
+   ========================================================================= */
+function choice(name, legend, options, extra=''){
+  return `<fieldset class="field"><legend>${legend}</legend><div class="opts">${options.map((o,i)=>`<label class="opt"><input type="radio" name="${name}" id="${name}_${i}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join('')}</div>${extra}</fieldset>`;
+}
+function scale(name, legend, n, lo, hi){
+  return `<fieldset class="field"><legend>${legend}</legend><div class="scale opts" style="--n:${n}">${Array.from({length:n},(_,i)=>`<label class="opt"><input type="radio" name="${name}" id="${name}_${i+1}" value="${i+1}"><span>${i+1}</span></label>`).join('')}</div><div class="scale-ends"><span>${lo}</span><span>${hi}</span></div></fieldset>`;
+}
+function pick(name, legend, options, hint=''){
+  return `<fieldset class="field"><legend>${legend}</legend>${hint?`<p class="small muted" style="margin:-4px 0 8px">${hint}</p>`:''}<div class="opts col">${options.map((o,i)=>`<label class="opt"><input type="radio" name="${name}" id="${name}_${i}" value="${i}"><span>${o}</span></label>`).join('')}</div></fieldset>`;
+}
+function ticks(name, legend, options, hint='Tick all that apply.'){
+  return `<fieldset class="field"><legend>${legend}</legend><p class="small muted" style="margin:-4px 0 8px">${hint}</p><div class="opts col">${options.map((o,i)=>`<label class="opt"><input type="checkbox" name="${name}" id="${name}_${i}" value="${i}"><span>${o}</span></label>`).join('')}</div></fieldset>`;
+}
+const ticked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => +el.value);
+const val = name => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : null; };
+let currentGate = null;
+const runGate = () => { if (currentGate) { try { currentGate(); } catch(e) {} } };
+app.addEventListener('input', runGate); app.addEventListener('change', runGate);
+function gate(btnSel, check){ const b=$(btnSel); currentGate = () => { b.disabled = !check(); }; runGate(); }
+const sendIcon = `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z"/></svg>`;
+const botIcon = `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a1 1 0 0 1 1 1v2h4a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H9l-4 3v-3.2A3 3 0 0 1 4 16V8a3 3 0 0 1 3-3h4V3a1 1 0 0 1 1-1zm-3 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>`;
+
+/* =========================================================================
+   SAVING
+   ========================================================================= */
+async function save(kind){
+  const json = JSON.stringify(D);
+  const rec = { kind, at: iso(), ok: false };
+  if (PREVIEW){ rec.ok = true; rec.note = 'preview: not sent'; D.saves.push(rec); return true; }
+  try{
+    if (CONFIG.saveMode === 'datapipe'){
+      const res = await fetch('https://pipe.jspsych.org/api/data/', { method:'POST', headers:{'Content-Type':'application/json', Accept:'*/*'},
+        body: JSON.stringify({ experimentID: CONFIG.datapipeExperimentID, filename: `${pid}_${kind}.json`, data: json }) });
+      rec.ok = res.ok; rec.status = res.status;
+    } else if (CONFIG.saveMode === 'gsheet'){
+      await fetch(CONFIG.gsheetUrl, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ pid, kind, at: rec.at, json }) });
+      rec.ok = true;
+    }
+  }catch(e){ rec.ok = false; rec.error = String(e && e.message || e); }
+  D.saves.push(rec);
+  return rec.ok;
+}
+
+/* =========================================================================
+   SCREENS
+   ========================================================================= */
+async function welcome(){
+  progress();
+  render(`<div class="stack">
+    <div><p class="eyebrow">Welcome</p><h1>Handling everyday problems</h1></div>
+    <p>Thank you for your interest. This study looks at how people deal with everyday problems while keeping other information in mind.</p>
+    <div class="card"><p><b>What you will do (about ${NS===1?'15':'30'} minutes)</b></p>
+      <ul class="plain"><li>Look at ${NS===1?'a short picture story':'short picture stories'}.</li>
+      <li>Send a message to a help assistant${NS===1?'':' about each story'}, while remembering a number.</li>
+      <li>Do a short puzzle and answer some questions about yourself.</li></ul>
+      <p class="small muted" style="margin:0">Please use the same device from start to finish, in a place where you can focus.</p></div>
+    <div class="card small">
+      <p><b>Your information.</b> Your answers and messages are saved without your name, under a code. The research team, and AI tools used by the research team, will analyse them later. The help assistant in this study does not reply to you.</p>
+      <p><b>About the aims.</b> Some aims of the study are explained at the end, so that knowing them in advance does not change how you take part.</p>
+      <p><b>Your choice.</b> Taking part is voluntary. You can stop at any time${DISTRESS?' with the Stop button at the top of the page, or':''} by closing the page, with no penalty. ${NS===1&&SCENARIOS[0]==='distress'?'The story is about someone going through a very hard time emotionally, including thoughts that life is not worth living. It uses simple drawings and shows no self-harm. Please do not take part if you are going through a very low period yourself.':NS===1&&SCENARIOS[0]==='home'?'The story describes violence at home between spouses. It has simple drawings and no graphic images. If this could upset you, for example because of your own experiences, please do not take part.':NS===1&&SCENARIOS[0]==='health'?'The story describes suddenly feeling unwell at night. If that could upset you, for example because of a recent illness or loss, please do not take part.':'Some stories show stressful but everyday situations, such as feeling unwell or losing money.'}</p>
+      <p style="margin:0"><b>Contact.</b> ${esc(CONFIG.researcherName)}, ${esc(CONFIG.institution)}: <span style="user-select:all">${esc(CONFIG.researcherEmail)}</span></p>
+    </div>
+    ${DISTRESS ? `<label class="check"><input type="checkbox" id="screen"><span>I am not going through a very low period right now, and I have not had thoughts of harming myself in the past month.</span></label>` : ''}
+    <label class="check"><input type="checkbox" id="agree"><span>I am 18 or older, I have read the information above, and I agree to take part.</span></label>
+    <div class="btns"><button class="btn" id="go" disabled>Start</button></div>
+  </div>`, 'welcome');
+  gate('#go', ()=>$('#agree').checked && (!DISTRESS || $('#screen').checked));
+  await clicked('#go');
+  D.consent = { agreed: true, screened: DISTRESS ? true : null, at: iso() };
+  if (DISTRESS) $('#stopSlot').hidden = false;
+}
+
+async function aboutYou(){
+  progress();
+  render(`<div class="stack">
+    <div><p class="eyebrow">Before we start</p><h2>A little about you</h2></div>
+    <div class="field"><label for="age">Your age</label><input type="number" id="age" inputmode="numeric" min="18" max="99" style="max-width:140px"></div>
+    ${choice('gender','Gender',['Woman','Man','Non-binary','Prefer not to say'])}
+    ${choice('devtype','What are you using right now?',['Phone','Tablet','Laptop or computer'])}
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'about');
+  gate('#go', ()=>{ const a=+$('#age').value; return a>=18 && a<=99 && val('gender') && val('devtype'); });
+  await clicked('#go');
+  D.about = { age: +$('#age').value, gender: val('gender'), device: val('devtype') };
+}
+
+async function howItWorks(){
+  progress();
+  render(`<div class="stack">
+    <div><p class="eyebrow">How it works</p><h2>Each round has four steps</h2></div>
+    <ol class="steps">
+      <li><span><b>Remember a number.</b> It is shown for a few seconds. Keep it in mind until the end of the round.</span></li>
+      <li><span><b>Read a short picture story.</b> Imagine it is happening to you. Take your time: reading is not timed.</span></li>
+      <li><span><b>Send a message to the help assistant</b> asking for help. ${CONFIG.batteryCue?'Your phone\'s battery is almost empty, so you have only ':'You have '}${CONFIG.taskBSeconds} seconds. A timer shows the time left${CONFIG.sound?', with a beep in the last 10 seconds':''}. When time runs out, your message is sent automatically.</span></li>
+      <li><span><b>Type the number</b> you remembered.</span></li>
+    </ol>
+    <p>Write the way you normally would. Pasting is turned off.${CONFIG.sound?' If you can, turn your sound on.':''}</p>
+    <p>Let's start with one practice round.</p>
+    <div class="btns"><button class="btn" id="go">Start practice</button></div></div>`, 'howitworks');
+  await clicked('#go');
+}
+
+async function interstitial(title, sub, btn){
+  render(`<div class="stack" style="padding-top:8vh;text-align:center;align-items:center">
+    <p class="eyebrow">${title}</p><h2>${sub}</h2>
+    <div class="btns"><button class="btn" id="go">${btn}</button></div></div>`, 'inter');
+  await clicked('#go');
+}
+
+async function showDigits(){
+  const digits = String(10000 + Math.floor(Math.random()*90000));
+  const n = 4;
+  render(`<div class="stack"><div><p class="eyebrow">Step 1</p><h2>Remember this number</h2></div>
+    <div class="digits" aria-live="polite">${digits.split('').join(' ')}</div>
+    <div class="dots" id="dots">${'<i></i>'.repeat(n)}</div></div>`, 'digits');
+  const dots = [...document.querySelectorAll('#dots i')];
+  for (let i=0;i<n;i++){ await sleep(CONFIG.digitShowMs/n); dots[i].classList.add('off'); }
+  return digits;
+}
+
+async function showStory(key){
+  const lines = NARRATION[key];
+  const t0 = now(); const beatMs = [];
+  if (!lines){ // story without narration: all four pictures at once
+    render(`<div class="stack"><div><p class="eyebrow">Step 2</p><h2>Look at the story. Imagine you are the person in it.</h2></div>${strip(key)}
+      <div class="btns"><button class="btn" id="go" disabled>Continue</button></div></div>`, 'story_'+key);
+    setTimeout(()=>{ const b=$('#go'); if(b) b.disabled=false; }, CONFIG.beatMinMs*2);
+    await clicked('#go');
+    return { viewMs: Math.round(now()-t0), beatMs };
+  }
+  for (let i=0;i<4;i++){
+    const tb = now();
+    render(`<div class="stack"><div><p class="eyebrow">Step 2 · picture ${i+1} of 4</p><h2>Imagine this is you</h2></div>
+      <div class="beat">${panel(i+1, STORIES[key][i])}</div>
+      <p class="narr">${esc(lines[i])}</p>
+      <div class="btns"><button class="btn" id="go" disabled>${i<3?'Next':'Continue'}</button></div></div>`, `story_${key}_${i+1}`);
+    setTimeout(()=>{ const b=$('#go'); if(b) b.disabled=false; }, CONFIG.beatMinMs);
+    await clicked('#go');
+    beatMs.push(Math.round(now()-tb));
+  }
+  return { viewMs: Math.round(now()-t0), beatMs };
+}
+
+/* The whole story with its narration, for Part 2 */
+function storyWithText(key){
+  const lines = NARRATION[key];
+  if (!lines) return strip(key);
+  return `<div class="told">${STORIES[key].map((p,i)=>`<figure>${panel(i+1,p)}<figcaption>${esc(lines[i])}</figcaption></figure>`).join('')}</div>`;
+}
+
+let actx = null;
+function unlockAudio(){ if (!CONFIG.sound) return; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch(e) {} }
+document.addEventListener('pointerdown', unlockAudio); document.addEventListener('keydown', unlockAudio);
+function beep(freq, dur, vol){
+  if (!CONFIG.sound || !actx) return;
+  try { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = freq; o.type = 'sine';
+    g.gain.setValueAtTime(vol, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur); } catch(e) {}
+}
+const buzz = ms => { if (CONFIG.vibrate) try { navigator.vibrate && navigator.vibrate(ms); } catch(e) {} };
+
+/* The chat screen. timed=true → Task B (countdown, auto-send). */
+function chatScreen(key, { timed, eyebrow, title }){
+  const secs = CONFIG.taskBSeconds;
+  render(`<div class="stack">
+    <div><p class="eyebrow">${eyebrow}</p><h2>${title}</h2></div>
+    ${strip(key, true)}
+    <div>
+    <div class="chat">
+      <div class="chat-head"><div class="avatar">${botIcon}</div><div class="who"><b>Help Assistant</b><span class="status"><i></i>Online</span></div>
+        ${timed && CONFIG.batteryCue ? `<div class="batt" id="batt" aria-hidden="true"><svg width="26" height="14" viewBox="0 0 26 14"><rect x="1" y="1" width="21" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="23" y="4.5" width="2.2" height="5" rx="1" fill="currentColor"/><rect id="battFill" x="3" y="3" width="4" height="8" rx="1" fill="var(--alarm)"/></svg><span id="battPct">4%</span></div>` : ''}
+        ${timed ? `<div class="clock" id="clock" aria-live="off">0:${String(secs).padStart(2,'0')}</div>` : ''}</div>
+      ${timed ? `<div class="tbar" id="tbar"><i id="tfill"></i></div>` : ''}
+      <div class="msgs" id="msgs">${timed && CONFIG.batteryCue ? '<div class="sys">Battery low. Your phone will switch off soon.</div>' : ''}<div class="bub them">Hi! How can I help you today?</div></div>
+      ${timed && CONFIG.batteryCue ? '<div class="dead" id="dead" hidden><span>Phone switched off</span></div>' : ''}
+      <form class="composer" id="comp" autocomplete="off">
+        <label for="ta" class="sr" hidden>Message</label>
+        <textarea id="ta" rows="1" placeholder="Type a message" spellcheck="false"></textarea>
+        <button class="send" id="send" type="submit" disabled aria-label="Send">${sendIcon}</button>
+      </form>
+    </div>
+    <p class="hint" id="hint" role="status"></p></div></div>`, (timed?'B_':'A_')+key);
+
+  const ta=$('#ta'), send=$('#send'), hint=$('#hint');
+  const t0 = now(); const log=[]; let first=null, ins=0, del=0, pastes=0, hidden=0, done=false, tick=null;
+  const code = t => ({insertText:'i',insertCompositionText:'c',deleteContentBackward:'b',deleteContentForward:'f',insertReplacementText:'r',insertLineBreak:'n',deleteWordBackward:'w',historyUndo:'u'}[t] || t || '?');
+  const grow = () => { ta.style.height='auto'; ta.style.height = Math.min(180, ta.scrollHeight+2)+'px'; };
+  const block = e => { e.preventDefault(); pastes++; hint.textContent='Pasting is turned off here. Please type your message.'; };
+  ta.addEventListener('paste', block); ta.addEventListener('drop', e=>e.preventDefault());
+  ta.addEventListener('beforeinput', e=>{ if(/^insertFrom(Paste|Drop)/.test(e.inputType)) e.preventDefault(); });
+  ta.addEventListener('input', e=>{
+    const t = Math.round(now()-t0); if(first===null) first=t;
+    if (/^delete/.test(e.inputType||'')) del++; else ins++;
+    if (log.length<4000) log.push([t, code(e.inputType), ta.value.length]);
+    send.disabled = !ta.value.trim(); grow(); hint.textContent='';
+  });
+  const onVis = () => { if (document.hidden) hidden++; };
+  document.addEventListener('visibilitychange', onVis);
+  ta.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey && !isTouch){ e.preventDefault(); if(ta.value.trim()) finish(false); } });
+  setTimeout(()=>ta.focus(), 50);
+
+  return new Promise(resolve=>{
+    function finish(auto){
+      if (done || STOPPED) { clearInterval(tick); return; } done=true; clearInterval(tick); document.removeEventListener('visibilitychange', onVis);
+      const text = ta.value; ta.disabled=true; send.disabled=true;
+      const msgs=$('#msgs');
+      msgs.insertAdjacentHTML('beforeend', text.trim()
+        ? `<div class="bub me">${esc(text)}</div><div class="sent">${auto?(CONFIG.batteryCue?'Battery empty · sent just in time':'Time is up · sent'):'Sent'}</div>`
+        : `<div class="sent">Time is up · no message was typed</div>`);
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const endMs = Math.round(now()-t0), lastInput = log.length ? log[log.length-1][0] : null;
+      if (auto && $('#dead')){ beep(220, 0.35, 0.18); buzz(300); setTimeout(()=>{ const d=$('#dead'); if (d) d.hidden=false; }, 500); }
+      const rec = { text, chars: text.length, words, firstInputMs: first, lastInputMs: lastInput, durationMs: endMs, autoSent: auto,
+        typingWhenTimeUp: auto && lastInput !== null && endMs - lastInput < 1500,
+        inserts: ins, deletions: del, pasteBlocked: pastes, leftPageCount: hidden, events: log };
+      setTimeout(()=>resolve(rec), auto && CONFIG.batteryCue ? 1900 : 1100);
+    }
+    $('#comp').addEventListener('submit', e=>{ e.preventDefault(); if(ta.value.trim()) finish(false); });
+    if (timed){
+      const clockEl=$('#clock'), fill=$('#tfill'), bar=$('#tbar'), bFill=$('#battFill'), bPct=$('#battPct');
+      let lastSec = secs;
+      tick = setInterval(()=>{
+        const left = Math.max(0, secs - (now()-t0)/1000), sec = Math.ceil(left);
+        clockEl.textContent = '0:' + String(sec).padStart(2,'0');
+        fill.style.width = (left/secs*100) + '%';
+        if (bFill){ bFill.setAttribute('width', Math.max(0.6, 4*left/secs).toFixed(2)); bPct.textContent = Math.max(1, Math.ceil(4*left/secs)) + '%'; }
+        if (left <= 10){ clockEl.classList.add('low'); bar.classList.add('low'); }
+        if (sec !== lastSec){ lastSec = sec;
+          if (sec <= 10 && sec > 0) beep(sec <= 5 ? 1320 : 990, 0.06, 0.12);
+          if (sec === 10 || sec === 5) buzz(150);
+        }
+        if (left <= 0) finish(true);
+      }, 100);
+    }
+  });
+}
+
+async function recallScreen(){
+  render(`<div class="stack"><div><p class="eyebrow">Step 4</p><h2>What was the number?</h2></div>
+    <div class="field"><label for="rec">Type the number</label><input type="text" id="rec" inputmode="numeric" maxlength="5" autocomplete="off" style="max-width:220px;font-family:var(--font-mono);font-size:24px;letter-spacing:.15em"></div>
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'recall');
+  const t0=now(); setTimeout(()=>$('#rec').focus(),50);
+  gate('#go', ()=>/^\d{1,5}$/.test($('#rec').value.trim()));
+  $('#rec').addEventListener('keydown', e=>{ if(e.key==='Enter' && !$('#go').disabled) $('#go').click(); });
+  await clicked('#go');
+  return { answer: $('#rec').value.trim(), ms: Math.round(now()-t0) };
+}
+
+async function quickRound(key, label){
+  await interstitial(label, key==='practice' ? 'Practice round' : 'Get ready', 'Start');
+  const digits = await showDigits();
+  const story = await showStory(key);
+  const msg = await chatScreen(key, { timed:true, eyebrow:'Step 3', title:'Send a message asking for help' });
+  const recall = await recallScreen();
+  return { digits, recall: recall.answer, recallCorrect: recall.answer === digits, recallMs: recall.ms,
+    storyViewMs: story.viewMs, storyBeatMs: story.beatMs, ...msg };
+}
+
+/* Filler: a short, easy non-verbal break between the quick and the careful message.
+   Eight shapes are the same; one is a different shape. */
+const SHAPES = {
+  circle: '<circle cx="0" cy="0" r="14"/>',
+  square: '<rect x="-13" y="-13" width="26" height="26" rx="2"/>',
+  triangle: '<path d="M0-15L15 12H-15Z"/>',
+  diamond: '<path d="M0-16L16 0 0 16-16 0Z"/>'
+};
+async function puzzle(){
+  progress();
+  render(`<div class="stack"><div><p class="eyebrow">Short break</p><h2>Find the different shape</h2></div>
+    <p>In each picture, one shape is different from the others. Tap it. There are ${CONFIG.puzzleTrials} pictures, and it takes about a minute.</p>
+    <div class="grid3" style="max-width:220px;pointer-events:none" aria-hidden="true">${Array.from({length:9},(_,i)=>`<div class="cell"><svg viewBox="-22 -22 44 44"><g class="shape">${i===4?SHAPES.triangle:SHAPES.circle}</g></svg></div>`).join('')}</div>
+    <p class="small muted" style="text-align:center;margin:0">Example: the triangle is the different one.</p>
+    <div class="btns"><button class="btn" id="go">Start</button></div></div>`, 'puzzle_intro');
+  await clicked('#go');
+  const names = Object.keys(SHAPES), trials = [];
+  for (let t=0;t<CONFIG.puzzleTrials;t++){
+    const base = names[Math.floor(Math.random()*names.length)];
+    const others = names.filter(n=>n!==base), odd = others[Math.floor(Math.random()*others.length)];
+    const pos = Math.floor(Math.random()*9);
+    render(`<div class="stack"><div><p class="eyebrow">Picture ${t+1} of ${CONFIG.puzzleTrials}</p><h2>Tap the different shape</h2></div>
+      <div class="grid3">${Array.from({length:9},(_,i)=>`<button class="cell" data-i="${i}" aria-label="Shape ${i+1}"><svg viewBox="-22 -22 44 44"><g class="shape">${SHAPES[i===pos?odd:base]}</g></svg></button>`).join('')}</div></div>`, 'puzzle');
+    const t0=now();
+    const pick = await new Promise(r=>app.querySelectorAll('.cell').forEach(c=>c.addEventListener('click',()=>r(+c.dataset.i),{once:true})));
+    trials.push({ correct: pick===pos, ms: Math.round(now()-t0) });
+  }
+  D.puzzle = { correct: trials.filter(x=>x.correct).length, total: trials.length, trials };
+}
+
+const SELF_OPTS = ['Yes, all of it', 'Most of it', 'Only some of it', 'Very little of it'];
+const TRUST_OPTS = ['Yes, I would trust it', 'I would partly trust it', 'No, I would not trust it'];
+const HELP_OPTS = ['Yes, it would help a lot', 'It would help a little', 'It would not help'];
+async function afterQuestions(key, i){
+  const b = D.taskB[key];
+  const trust = CONFIG.trustQuestions;
+  render(`<div class="stack">
+    <div><p class="eyebrow">Questions${NS>1?` · story ${i+1} of ${NS}`:''}</p><h2>Your first message in this story</h2></div>
+    ${strip(key, true)}
+    <div class="quote">${b && b.text.trim() ? esc(b.text) : '<span class="muted">(No message was typed in time.)</span>'}</div>
+    ${pick('self','Did this first message say everything you meant?',SELF_OPTS)}
+    ${trust ? `<div class="stack" style="gap:12px"><p style="margin:0"><b>Imagine the assistant replied to that message:</b></p><div class="quote ai">${esc(REPLIES[key])}</div></div>
+      ${pick('trust','If you got this reply in that moment, would you trust it?',TRUST_OPTS)}
+      ${pick('useful','Would this reply help you in that moment?',HELP_OPTS)}
+      ${choice('fits','Does this reply answer what you meant?',['Yes','No','Not sure'])}
+      ${choice('next','What would you most likely do next?',['Follow the advice','Send another message explaining more','Ask to talk to a human','Give up on the assistant'])}` : ''}
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'post_'+key);
+  gate('#go', ()=> val('self') && (!trust || (val('trust') && val('useful') && val('fits') && val('next'))));
+  await clicked('#go');
+  // stored as words plus a score where higher = more (all of it = 4 ... very little = 1)
+  const sc = (name, opts) => ({ answer: opts[+val(name)], score: opts.length - +val(name) });
+  D.post[key] = { selfCheck: sc('self', SELF_OPTS) };
+  if (trust) Object.assign(D.post[key], { trust: sc('trust', TRUST_OPTS), helps: sc('useful', HELP_OPTS), fits:val('fits'), next:val('next') });
+}
+
+const AGE_OPTS = ['From birth, or before age 3','When I started school (about age 3 to 6)','In primary school (about age 6 to 10)','After age 10'];
+const TYPE_OPTS = ['Mostly English words, for example "I am coming"','Mostly Hindi or another language in English letters, for example "main aa raha hoon"','Mostly an Indian script, for example "मैं आ रहा हूँ"','A mix of these'];
+const USE_OPTS = ['Talking with my family','Talking with friends','At work or college','Texting friends','Social media posts and comments','Watching videos or films','Reading news','Talking to customer support or chatbots'];
+const CANDO_OPTS = ['Ask for directions or order food','Follow a conversation between two people speaking fast','Follow the news on TV or YouTube','Explain a health problem to a doctor','Write a message asking a stranger for help','Write a complaint email to a company','Argue for my opinion in a meeting or class','Read a novel for pleasure'];
+async function languageBackground(){
+  progress();
+  render(`<div class="stack">
+    <div><p class="eyebrow">About your languages</p><h2>A few questions about the languages you use</h2></div>
+    <div class="field"><label for="homeLang">Which language or languages did your family speak at home when you were a child?</label><input type="text" id="homeLang"></div>
+    <div class="field"><label for="bestLang">Which language are you most comfortable in today?</label><input type="text" id="bestLang"></div>
+    ${pick('ageEng','When did you start learning English?',AGE_OPTS)}
+    ${choice('whereEng','Where did you mainly learn English?',['At home: my family spoke English with me','At school','Both at home and at school','Somewhere else'])}
+    ${choice('medium','What was the main medium of teaching in your school?',['English','Hindi','Another Indian language','Mixed'])}
+    <div class="field"><label for="state">Which state did you mostly grow up in?</label><input type="text" id="state"></div>
+    ${choice('edu','Highest education completed',['School (up to Class 12)','Diploma','Bachelor\'s degree','Master\'s degree or higher'])}
+    ${ticks('useEng','Where do you use English in a normal week?',USE_OPTS)}
+    ${pick('typeEng','When you text your friends on WhatsApp, how do you usually write?',TYPE_OPTS)}
+    ${ticks('cando','Which of these could you do in English without much difficulty?',CANDO_OPTS)}
+    ${choice('gig','Have you ever worked for a delivery or ride app?',['Yes','No'])}
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'language');
+  gate('#go', ()=> $('#homeLang').value.trim() && $('#bestLang').value.trim() && val('ageEng')!==null && val('whereEng') && val('medium') && $('#state').value.trim() && val('edu') && val('typeEng')!==null && val('gig'));
+  await clicked('#go');
+  const use = ticked('useEng'), can = ticked('cando');
+  D.language = { homeLanguages: $('#homeLang').value.trim(), mostComfortable: $('#bestLang').value.trim(),
+    ageStartedEnglish: AGE_OPTS[+val('ageEng')], ageStartedEnglishCode: +val('ageEng'),
+    whereLearned: val('whereEng'), schoolMedium: val('medium'), stateGrewUp: $('#state').value.trim(), education: val('edu'),
+    englishUseContexts: use.map(i=>USE_OPTS[i]), englishUseCount: use.length,
+    whatsappWriting: TYPE_OPTS[+val('typeEng')].replace(/, for example.*/,''),
+    canDo: can.map(i=>CANDO_OPTS[i]), canDoCount: can.length, gigWork: val('gig') };
+}
+
+/* LexTALE (Lemhöfer & Broersma, 2012): 60 letter strings, 40 real English words and 20 non-words.
+   Score = (% words correct + % non-words correct) / 2. Verify the list against lextale.com before launch. */
+const LEX_PRACTICE = [['platery',0],['denial',1],['generic',1]];
+const LEX_ITEMS = [['mensible',0],['scornful',1],['stoutly',1],['ablaze',1],['kermshaw',0],['moonlit',1],['lofty',1],['hurricane',1],['flaw',1],['alberation',0],
+  ['unkempt',1],['breeding',1],['festivity',1],['screech',1],['savoury',1],['plaudate',0],['shin',1],['fluid',1],['spaunch',0],['allied',1],
+  ['slain',1],['recipient',1],['exprate',0],['eloquence',1],['cleanliness',1],['dispatch',1],['rebondicate',0],['ingenious',1],['bewitch',1],['skave',0],
+  ['plaintively',1],['kilp',0],['interfate',0],['hasty',1],['lengthy',1],['fray',1],['crumper',0],['upkeep',1],['majestic',1],['magrity',0],
+  ['nourishment',1],['abergy',0],['proom',0],['turmoil',1],['carbohydrate',1],['scholar',1],['turtle',1],['fellick',0],['destription',0],['cylinder',1],
+  ['censorship',1],['celestial',1],['rascal',1],['purrage',0],['pulsh',0],['muddy',1],['quirty',0],['pudour',0],['listless',1],['wrought',1]];
+async function lextale(){
+  progress();
+  render(`<div class="stack"><div><p class="eyebrow">Word test · about 4 minutes</p><h2>Is it a real English word?</h2></div>
+    <p>You will see 60 letter strings, one at a time. Some are real English words and some are not. Tap <b>Yes</b> if you know it is a real English word, even if you cannot say what it means. If you are not sure, tap <b>No</b>.</p>
+    <p class="small muted">Spelling is British English. There are 3 practice words first.</p>
+    <div class="btns"><button class="btn" id="go">Start</button></div></div>`, 'lextale_intro');
+  await clicked('#go');
+  const run = async (items, label) => {
+    const out = [];
+    for (let i=0;i<items.length;i++){
+      render(`<div class="stack" style="align-items:center;text-align:center;padding-top:6vh">
+        <p class="eyebrow">${label} ${i+1} of ${items.length}</p>
+        <p class="lexword">${esc(items[i][0])}</p>
+        <div class="btns" style="justify-content:center"><button class="btn lexbtn" id="no">No</button><button class="btn lexbtn" id="yes">Yes</button></div></div>`, 'lextale');
+      const t0 = now();
+      const yes = await new Promise(r=>{ $('#yes').addEventListener('click',()=>r(1),{once:true}); $('#no').addEventListener('click',()=>r(0),{once:true}); });
+      out.push({ item: items[i][0], isWord: items[i][1], saidYes: yes, correct: yes === items[i][1], ms: Math.round(now()-t0) });
+    }
+    return out;
+  };
+  await run(LEX_PRACTICE, 'Practice');
+  const r = await run(LEX_ITEMS, 'Word');
+  const w = r.filter(x=>x.isWord), n = r.filter(x=>!x.isWord);
+  const score = (w.filter(x=>x.correct).length/w.length*100 + n.filter(x=>x.correct).length/n.length*100) / 2;
+  D.lextale = { score: Math.round(score*100)/100, wordsCorrect: w.filter(x=>x.correct).length, nonwordsCorrect: n.filter(x=>x.correct).length, items: r };
+}
+
+async function awareness(){
+  progress();
+  render(`<div class="stack">
+    <div><p class="eyebrow">Almost done</p><h2>Two quick questions</h2></div>
+    <div class="field"><label for="guess">In your own words, what do you think this study was looking at?</label><textarea id="guess" rows="3"></textarea></div>
+    ${choice('changed','Did that idea change how you wrote your messages?',['Yes','No','Not sure'])}
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'awareness');
+  gate('#go', ()=> $('#guess').value.trim().length>=3 && val('changed'));
+  await clicked('#go');
+  D.awareness = { guess: $('#guess').value.trim(), changedWriting: val('changed') };
+}
+
+function downloadBlock(){
+  const json = JSON.stringify(D, null, 1);
+  return `<div class="card small"><p><b>Your answers could not be sent.</b> Please save them and email the file to <span style="user-select:all">${esc(CONFIG.researcherEmail)}</span>.</p>
+    <div class="btns"><button class="btn ghost" id="dl">Save my answers</button><button class="btn ghost" id="cp">Copy my answers</button></div>
+    <pre class="dump" id="dump" hidden>${esc(json)}</pre></div>`;
+}
+function wireDownload(){
+  const json = JSON.stringify(D, null, 1);
+  const dl=$('#dl'), cp=$('#cp');
+  if (dl) dl.addEventListener('click', ()=>{ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([json],{type:'application/json'})); a.download=`${pid}.json`; document.body.appendChild(a); a.click(); a.remove(); }catch(e){} $('#dump').hidden=false; });
+  if (cp) cp.addEventListener('click', ()=>{ $('#dump').hidden=false; navigator.clipboard?.writeText(json).then(()=>{cp.textContent='Copied';}).catch(()=>{ const r=document.createRange(); r.selectNodeContents($('#dump')); getSelection().removeAllRanges(); getSelection().addRange(r); }); });
+}
+
+function supportCard(strong){
+  if (!DISTRESS) return '';
+  return `<div class="card small${strong?' support':''}"><p><b>If the story felt close to your own life, you are not alone, and talking to someone helps.</b></p>
+    <ul class="plain" style="margin:0"><li>Tele-MANAS, free mental health support, 24 hours, many Indian languages: <b style="user-select:all">14416</b></li><li>In an emergency: <b>112</b></li></ul></div>`;
+}
+async function stopScreen(){
+  STOPPED = true; inProgress = false; $('#stopSlot').hidden = true;
+  D.stopped = { at: iso(), screen: screenName };
+  render(`<div class="stack"><div><p class="eyebrow">Stopped</p><h1>You have stopped the study</h1></div>
+    <p>Thank you for your time. Nothing happens to you because you stopped.</p>
+    ${supportCard(true)}
+    <div class="card small" id="sbox"><p><b>What should we do with the answers you gave so far?</b></p>
+      <div class="btns"><button class="btn ghost" id="keep">Keep them</button><button class="btn ghost" id="drop">Remove them</button></div></div>
+    <p class="muted small">You can close this page now. Your code: <span class="code" style="font-size:16px;user-select:all">${esc(pid)}</span></p></div>`, 'stopped');
+  const done = async keep => {
+    $('#keep').disabled = $('#drop').disabled = true;
+    if (!keep){ D.withdrawn = true; D.withdrawnAt = iso(); }
+    const ok = await save(keep ? 'stopped' : 'withdrawn');
+    $('#sbox').innerHTML = `<p style="margin:0">${ok ? (keep ? 'Thank you. Your answers so far will be kept.' : 'Done. Your answers will be removed and not used.') : `We could not send this. Please email ${esc(CONFIG.researcherEmail)} with your code ${esc(pid)}.`}</p>`;
+  };
+  $('#keep').addEventListener('click', ()=>done(true));
+  $('#drop').addEventListener('click', ()=>done(false));
+}
+$('#stopBtn').addEventListener('click', stopScreen);
+
+const MOOD_OPTS = ['I feel fine','I feel okay','I feel a bit low','I feel quite low','I feel very low'];
+async function moodCheck(){
+  render(`<div class="stack"><div><p class="eyebrow">Before you go</p><h2>How are you feeling right now?</h2></div>
+    ${pick('mood','',MOOD_OPTS)}
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'mood');
+  gate('#go', ()=>val('mood')!==null);
+  await clicked('#go');
+  D.moodEnd = MOOD_OPTS.length - +val('mood');   // 5 = fine ... 1 = very low
+  D.moodEndAnswer = MOOD_OPTS[+val('mood')];
+}
+
+async function debrief(saved){
+  progress(); inProgress = false; $('#stopSlot').hidden = true;
+  render(`<div class="stack">
+    <div><p class="eyebrow">Thank you</p><h1>What this study was really about</h1></div>
+    <p>We are studying the <b>words people choose</b> when they write to an AI assistant in a hurry, compared with when they have time.</p>
+    ${DISTRESS && D.moodEnd && D.moodEnd <= 2 ? supportCard(true) : ''}
+    <p>In daily life, people often use a broad phrase when they mean something specific. Someone may write "${DISTRESS?'I am feeling very stressed these days.':SCENARIOS[0]==='home'?'I am not happy with my spouse. I want a divorce.':'I am not feeling well.'}" when they mean "${DISTRESS?'I have not slept or eaten properly for weeks, I have stopped going to work, and I keep thinking everyone would be better off without me.':SCENARIOS[0]==='home'?'My spouse hit me and threatened me, and I am scared to go home tonight.':'I have chest pain going down my arm.'}" An AI assistant can only respond to the words it receives, so a broad phrase can lead to the wrong kind of help.</p>
+    <p>We did not explain this at the start, because knowing it would have changed how you wrote. The number task was real, but its main purpose was to make the first messages feel like a busy moment in everyday life. There are no right or wrong messages.</p>
+    <div class="card small">
+      <p><b>Your code:</b> <span class="code" style="user-select:all">${esc(pid)}</span></p>
+      <p style="margin:0">Keep this code if you need to contact the research team: ${esc(CONFIG.researcherName)}, <span style="user-select:all">${esc(CONFIG.researcherEmail)}</span>.</p>
+    </div>
+    <div class="card small" id="wbox">
+      <p><b>Changed your mind?</b> Now that you know the aim, you can ask for your answers to be removed. Nothing happens to you if you do.</p>
+      <div class="btns"><button class="btn ghost" id="withdraw">Remove my answers</button></div>
+    </div>
+    ${DISTRESS && !(D.moodEnd <= 2) ? supportCard(false) : ''}
+    <div class="card small"${DISTRESS?' hidden':''}><p><b>If a story raised a real concern for you:</b></p>
+      <ul class="plain" style="margin:0"><li>Emergency: <b>112</b></li>${SCENARIOS.includes('home')?'<li>Women Helpline: <b>181</b></li><li>Tele-MANAS (free mental health support, any gender): <b>14416</b></li>':''}${SCENARIOS.includes('health')?'<li>Ambulance: <b>108</b></li>':''}${SCENARIOS.includes('fraud')?'<li>Money lost to online or phone fraud: <b>1930</b> (National Cyber Crime Helpline) or cybercrime.gov.in</li>':''}</ul></div>
+    ${saved ? '' : downloadBlock()}
+    ${PREVIEW ? `<div class="card small"><p><b>Preview mode.</b> Nothing was sent. This is the data a real session records:</p><pre class="dump">${esc(JSON.stringify(D, null, 1))}</pre></div>` : ''}
+    <p class="muted small">You can close this page now.</p></div>`, 'debrief');
+  if (!saved) wireDownload();
+  $('#withdraw').addEventListener('click', async ()=>{
+    $('#withdraw').disabled = true;
+    D.withdrawn = true; D.withdrawnAt = iso();
+    const ok = await save('withdrawn');
+    $('#wbox').innerHTML = ok ? `<p style="margin:0"><b>Done.</b> Your answers will be removed and not used.</p>`
+      : `<p style="margin:0"><b>We could not send your request.</b> Please email ${esc(CONFIG.researcherEmail)} with your code ${esc(pid)}, and your answers will be removed.</p>`;
+  });
+}
+
+/* =========================================================================
+   FLOW
+   ========================================================================= */
+async function run(){
+  await welcome();
+  await aboutYou();
+  await howItWorks();
+
+  // Practice (not analysed)
+  progress();
+  D.practice = await quickRound('practice', 'Practice');
+  await interstitial('Practice finished', NS===1 ? 'Now the real round begins.' : `Now the real rounds begin. There are ${WORDS[NS-1]}.`, 'Continue');
+
+  // Task B — quick, timed, under memory load
+  for (let i=0;i<NS;i++){
+    progress();
+    const key = D.order[i];
+    D.taskB[key] = { position: i+1, ...(await quickRound(key, NS===1 ? 'The real round' : `Round ${i+1} of ${NS}`)) };
+  }
+  save('partB'); // checkpoint, not awaited
+
+  await puzzle();
+
+  // Task A — same stories, no timer, no number
+  progress();
+  await interstitial('Part 2', NS===1 ? 'You will see the same story again. This time there is no number to remember and no time limit.' : `You will see the same ${WORDS[NS-1]} stories again. This time there is no number to remember and no time limit.`, 'Continue');
+  for (let i=0;i<NS;i++){
+    progress();
+    const key = D.order[i];
+    render(`<div class="stack"><div><p class="eyebrow">${NS>1?`Story ${i+1} of ${NS}`:'The same story'}</p><h2>Read the story again. Imagine this is you.</h2></div>${storyWithText(key)}
+      <div class="btns"><button class="btn" id="go">Continue</button></div></div>`, 'Astory_'+key);
+    await clicked('#go');
+    D.taskA[key] = { position: i+1, ...(await chatScreen(key, { timed:false, eyebrow: NS>1 ? `Story ${i+1} of ${NS} · no time limit` : 'No time limit',
+      title:'Write to the assistant as precisely as you can about what is happening and what help you need' })) };
+  }
+
+  progress();
+  for (let i=0;i<NS;i++) await afterQuestions(D.order[i], i);
+
+  await awareness();            // before any question that mentions language or words
+  await languageBackground();
+  if (CONFIG.lextale) await lextale();
+  if (DISTRESS) await moodCheck();
+
+  D.completedAt = iso();
+  D.screenTimes.push([screenName, Math.round(now()-screenStart)]);
+  const saved = await save('final');
+  await debrief(saved);
+}
+run();
+</script>
+</body>
+</html>
