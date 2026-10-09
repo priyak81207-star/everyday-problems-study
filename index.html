@@ -91,7 +91,17 @@ main:focus{outline:none}
 .strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media (min-width:640px){.strip{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .strip svg{width:100%;height:auto;display:block}
-.beat{max-width:520px;width:100%;margin:0 auto}
+.beat{max-width:520px;width:100%;margin:0 auto;animation:rise .7s ease both}
+.narr{animation:fade 1.2s .5s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.beat,.narr{animation:none}}
+.cell.hit{border-color:var(--accent);background:var(--bubble)}
+.cell.miss{border-color:var(--alarm)}
+.lexbar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;width:100%;max-width:320px}
+.lexbar i{display:block;height:100%;background:var(--accent)}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.pair .lbl{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
 .beat svg{width:100%;height:auto;display:block}
 .narr{font-size:21px;line-height:1.5;max-width:34ch;margin:0 auto;text-align:center;text-wrap:balance}
 .told{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -232,6 +242,11 @@ const D = {
   sid: SID,
   pid, version: VERSION, preview: PREVIEW, startedAt: iso(), completedAt: null,
   device: { ua: navigator.userAgent, w: innerWidth, h: innerHeight, touch: isTouch, lang: navigator.language },
+  env: { timezone: (()=>{ try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) { return ''; } })(),
+    utcOffsetMin: -new Date().getTimezoneOffset(), localStart: new Date().toString(), languages: navigator.languages || [],
+    screen: [screen.width, screen.height], pixelRatio: devicePixelRatio, platform: navigator.platform || '', referrer: document.referrer || '',
+    url: location.href },
+  liveDraft: null,
   order: shuffle(SCENARIOS), consent: null, about: {}, practice: null,
   taskB: {}, puzzle: null, taskA: {}, post: {}, language: {}, awareness: {},
   screenTimes: [], saves: [], withdrawn: false,
@@ -239,7 +254,7 @@ const D = {
 };
 
 /* ---------- progress ---------- */
-const TOTAL_STEPS = 11 + 3*NS; let stepNo = 0;
+const TOTAL_STEPS = 13 + 3*NS; let stepNo = 0;
 function progress(){ stepNo++; $('#prog').style.width = Math.min(100, stepNo/TOTAL_STEPS*100) + '%'; }
 if (PREVIEW) $('#previewTag').hidden = false;
 $('#topname').textContent = CONFIG.studyName;
@@ -252,8 +267,8 @@ const MILESTONES = [
   [/^story_practice_1$/, '04 Started the practice round'], [/^B_practice$/, '05 Writing practice message'],
   [/^story_(?!practice).*_1$/, '06 Reading the story'], [/^B_(?!practice)/, '07 Writing the QUICK message'],
   [/^puzzle_intro$/, '08 Quick message sent (shape break)'], [/^Astory_/, '09 Reading the story again'],
-  [/^A_/, '10 Writing the CAREFUL message'], [/^post_/, '11 Questions about the reply'], [/^awareness$/, '12 Study-aim question'],
-  [/^language$/, '13 Language questions'], [/^lextale_intro$/, '14 Word test'], [/^mood$/, '15 Mood check'],
+  [/^feel$/, '07b How it felt'], [/^A_/, '10 Writing the CAREFUL message'], [/^post_/, '11 Questions about the reply'], [/^awareness$/, '12 Study-aim question'],
+  [/^comprehension$/, '12b What they saw in the story'], [/^language$/, '13 Language questions'], [/^lextale_intro$/, '14 Word test'], [/^mood$/, '15 Mood check'],
   [/^debrief$/, '16 FINISHED'], [/^stopped$/, 'Pressed Stop']
 ];
 let lastStep = '';
@@ -262,9 +277,12 @@ function ping(step){
   try { fetch(CONFIG.gsheetUrl, { method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain;charset=utf-8'},
     body: JSON.stringify({ kind:'progress', pid, sid:SID, step, startedAt:D.startedAt, device:(isTouch?'Phone/tablet':'Computer') + ' ' + innerWidth + 'px' }) }); } catch(e) {}
 }
+let lastLeaveSave = 0;
 document.addEventListener('visibilitychange', ()=>{
   if (!inProgress || !lastStep) return;
   ping(document.hidden ? lastStep + ' (LEFT THE PAGE)' : lastStep);
+  // keep everything they have given so far, including half-typed text, in case they never come back
+  if (document.hidden && Date.now() - lastLeaveSave > 15000){ lastLeaveSave = Date.now(); D.leftPageAt = (D.leftPageAt || []).concat([[iso(), screenName]]); save('left_page', true); }
 });
 function render(html, name){
   if (STOPPED && name !== 'stopped') return;
@@ -440,10 +458,10 @@ const STORIES = {
 };
 const NARRATION = {
   distress: [
-    'It is very late. The house is quiet, and your thoughts will not slow down.',
-    'The next day, everything feels heavy. Even small things take too much effort.',
-    'Your phone keeps buzzing. You let it ring.',
-    'Tonight, one thought keeps coming back. You pick up your phone and open the help assistant.'
+    'It is past midnight. The fan turns slowly above you. The house is completely quiet, but your mind is not.',
+    'Morning comes, then afternoon. Everything feels heavy. Even small things take more effort than you have.',
+    'Your phone lights up again and again. You watch it buzz on the table, and you let it ring.',
+    'Tonight, one thought keeps coming back, louder than the others. You pick up your phone and open the help assistant.'
   ],
   home: [
     'It is evening. Your spouse comes home angry. The shouting starts, and you try to keep things calm.',
@@ -488,7 +506,7 @@ const botIcon = `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="tr
 /* =========================================================================
    SAVING
    ========================================================================= */
-async function save(kind){
+async function save(kind, leaving){
   const json = JSON.stringify(D);
   const rec = { kind, at: iso(), ok: false };
   if (PREVIEW){ rec.ok = true; rec.note = 'preview: not sent'; D.saves.push(rec); return true; }
@@ -498,7 +516,7 @@ async function save(kind){
         body: JSON.stringify({ experimentID: CONFIG.datapipeExperimentID, filename: `${pid}_${kind}.json`, data: json }) });
       rec.ok = res.ok; rec.status = res.status;
     } else if (CONFIG.saveMode === 'gsheet'){
-      await fetch(CONFIG.gsheetUrl, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      await fetch(CONFIG.gsheetUrl, { method:'POST', mode:'no-cors', keepalive: !!leaving && json.length < 60000, headers:{'Content-Type':'text/plain;charset=utf-8'},
         body: JSON.stringify({ pid, kind, at: rec.at, json }) });
       rec.ok = true;
     }
@@ -660,6 +678,7 @@ function chatScreen(key, { timed, eyebrow, title }){
     const isDel = /^delete/.test(e.inputType||'');
     if (isDel && !lastDel && lastVal.trim() && drafts.length < 60) drafts.push([t, lastVal]);   // the text just before they started deleting
     lastDel = isDel; lastVal = ta.value;
+    D.liveDraft = { screen: (timed ? 'quick_' : 'careful_') + key, text: ta.value, ms: t };
     send.disabled = !ta.value.trim(); grow(); hint.textContent='';
   });
   const onVis = () => { if (document.hidden) hidden++; };
@@ -670,7 +689,7 @@ function chatScreen(key, { timed, eyebrow, title }){
   return new Promise(resolve=>{
     function finish(auto){
       if (done || STOPPED) { clearInterval(tick); return; } done=true; clearInterval(tick); document.removeEventListener('visibilitychange', onVis);
-      const text = ta.value; ta.disabled=true; send.disabled=true;
+      const text = ta.value; ta.disabled=true; send.disabled=true; D.liveDraft = null;
       const msgs=$('#msgs');
       msgs.insertAdjacentHTML('beforeend', text.trim()
         ? `<div class="bub me">${esc(text)}</div><div class="sent">${auto?(CONFIG.batteryCue?'Battery empty · sent just in time':'Time is up · sent'):'Sent'}</div>`
@@ -714,6 +733,17 @@ async function recallScreen(){
   return { answer: $('#rec').value.trim(), ms: Math.round(now()-t0) };
 }
 
+const RUSH_OPTS = ['Calm', 'A little rushed', 'Quite rushed', 'Very rushed'];
+const REAL_OPTS = ['Not real at all', 'A little real', 'Quite real', 'Very real'];
+async function feelScreen(){
+  render(`<div class="stack"><div><p class="eyebrow">Quick check</p><h2>How was that?</h2></div>
+    ${pick('rush','While you were writing that message, how did you feel?',RUSH_OPTS)}
+    ${pick('real','How real did the situation feel to you?',REAL_OPTS)}
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'feel');
+  gate('#go', ()=> val('rush')!==null && val('real')!==null);
+  await clicked('#go');
+  return { feltRushed: { answer: RUSH_OPTS[+val('rush')], score: +val('rush') + 1 }, feltReal: { answer: REAL_OPTS[+val('real')], score: +val('real') + 1 } };
+}
 async function quickRound(key, label){
   await interstitial(label, key==='practice' ? 'Practice round' : 'Get ready', 'Start');
   const digits = await showDigits();
@@ -750,11 +780,15 @@ async function puzzle(){
     const t0=now();
     const pick = await new Promise(r=>app.querySelectorAll('.cell').forEach(c=>c.addEventListener('click',()=>r(+c.dataset.i),{once:true})));
     trials.push({ correct: pick===pos, ms: Math.round(now()-t0) });
+    const cells = app.querySelectorAll('.cell'); cells[pos].classList.add('hit'); if (pick!==pos) cells[pick].classList.add('miss');
+    await sleep(350);
   }
   D.puzzle = { correct: trials.filter(x=>x.correct).length, total: trials.length, trials };
 }
 
 const SELF_OPTS = ['Yes, all of it', 'Most of it', 'Only some of it', 'Very little of it'];
+const WHY_OPTS = ['I was rushed', 'The right words did not come to mind', 'I did not want to say some things', 'I thought it was enough to get help', 'I did not know what to include', 'Nothing was left out'];
+const THINK_OPTS = ['In English', 'In my home language', 'In a mix of languages', 'I am not sure'];
 const TRUST_OPTS = ['Yes, I would trust it', 'I would partly trust it', 'No, I would not trust it'];
 const HELP_OPTS = ['Yes, it would help a lot', 'It would help a little', 'It would not help'];
 async function afterQuestions(key, i){
@@ -765,17 +799,21 @@ async function afterQuestions(key, i){
     ${strip(key, true)}
     <div class="quote">${b && b.text.trim() ? esc(b.text) : '<span class="muted">(No message was typed in time.)</span>'}</div>
     ${pick('self','Did this first message say everything you meant?',SELF_OPTS)}
+    ${ticks('why','If your first message left something out, why?',WHY_OPTS)}
+    <div class="field"><label for="whyOther">Anything else about why? (optional)</label><input type="text" id="whyOther"></div>
+    ${pick('think','While writing the first message, which language were you thinking in?',THINK_OPTS)}
     ${trust ? `<div class="stack" style="gap:12px"><p style="margin:0"><b>Imagine the assistant replied to that message:</b></p><div class="quote ai">${esc(REPLIES[key])}</div></div>
       ${pick('trust','If you got this reply in that moment, would you trust it?',TRUST_OPTS)}
       ${pick('useful','Would this reply help you in that moment?',HELP_OPTS)}
       ${choice('fits','Does this reply answer what you meant?',['Yes','No','Not sure'])}
       ${choice('next','What would you most likely do next?',['Follow the advice','Send another message explaining more','Ask to talk to a human','Give up on the assistant'])}` : ''}
     <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'post_'+key);
-  gate('#go', ()=> val('self') && (!trust || (val('trust') && val('useful') && val('fits') && val('next'))));
+  gate('#go', ()=> val('self') && ticked('why').length && val('think')!==null && (!trust || (val('trust') && val('useful') && val('fits') && val('next'))));
   await clicked('#go');
   // stored as words plus a score where higher = more (all of it = 4 ... very little = 1)
   const sc = (name, opts) => ({ answer: opts[+val(name)], score: opts.length - +val(name) });
-  D.post[key] = { selfCheck: sc('self', SELF_OPTS) };
+  D.post[key] = { selfCheck: sc('self', SELF_OPTS), whyLeftOut: ticked('why').map(i=>WHY_OPTS[i]), whyOther: $('#whyOther').value.trim(),
+    thinkingLanguage: THINK_OPTS[+val('think')] };
   if (trust) Object.assign(D.post[key], { trust: sc('trust', TRUST_OPTS), helps: sc('useful', HELP_OPTS), fits:val('fits'), next:val('next') });
 }
 
@@ -831,6 +869,7 @@ async function lextale(){
     for (let i=0;i<items.length;i++){
       render(`<div class="stack" style="align-items:center;text-align:center;padding-top:6vh">
         <p class="eyebrow">${label} ${i+1} of ${items.length}</p>
+        <div class="lexbar" aria-hidden="true"><i style="width:${Math.round(i/items.length*100)}%"></i></div>
         <p class="lexword">${esc(items[i][0])}</p>
         <div class="btns" style="justify-content:center"><button class="btn lexbtn" id="no">No</button><button class="btn lexbtn" id="yes">Yes</button></div></div>`, 'lextale');
       const t0 = now();
@@ -843,9 +882,29 @@ async function lextale(){
   const r = await run(LEX_ITEMS, 'Word');
   const w = r.filter(x=>x.isWord), n = r.filter(x=>!x.isWord);
   const score = (w.filter(x=>x.correct).length/w.length*100 + n.filter(x=>x.correct).length/n.length*100) / 2;
+  render(`<div class="stack" style="align-items:center;text-align:center;padding-top:6vh"><p class="eyebrow">Word test done</p>
+    <h2>Your score: ${Math.round(score)}%</h2><p class="muted">Most people who use English every day score between 60% and 100%.</p>
+    <div class="btns" style="justify-content:center"><button class="btn" id="go">Continue</button></div></div>`, 'lextale_done');
+  await clicked('#go');
   D.lextale = { score: Math.round(score*100)/100, wordsCorrect: w.filter(x=>x.correct).length, nonwordsCorrect: n.filter(x=>x.correct).length, items: r };
 }
 
+const SAW = {
+  distress: { real: ['Not sleeping at night', 'Not eating their meals', 'It had been going on for many days or weeks', 'Not going to work, ignoring calls from work', 'Thinking others would be better off without them'],
+              fake: ['Had an injury', 'Lost money', 'Had a fight with a family member', 'Was worried about an exam'] }
+};
+async function comprehension(key){
+  const set = SAW[key]; if (!set) return;
+  const items = shuffle(set.real.map(t=>[t,1]).concat(set.fake.map(t=>[t,0])));
+  render(`<div class="stack"><div><p class="eyebrow">About the story</p><h2>What was happening to the person in the story?</h2></div>
+    ${ticks('saw','Tick everything you noticed in the pictures.',items.map(x=>x[0]),'Tick all that apply. There are no trick questions.')}
+    <div class="btns"><button class="btn" id="go">Next</button></div></div>`, 'comprehension');
+  await clicked('#go');
+  const t = ticked('saw');
+  D.saw = D.saw || {};
+  D.saw[key] = { ticked: t.map(i=>items[i][0]), correctTicked: t.filter(i=>items[i][1]).length, ofCorrect: set.real.length,
+    wrongTicked: t.filter(i=>!items[i][1]).length, missed: set.real.filter(r=>!t.some(i=>items[i][0]===r)) };
+}
 async function awareness(){
   progress();
   render(`<div class="stack">
@@ -914,6 +973,10 @@ async function debrief(saved){
     <p>We are studying the <b>words people choose</b> when they write to an AI assistant in a hurry, compared with when they have time.</p>
     ${DISTRESS && D.moodEnd && D.moodEnd <= 2 ? supportCard(true) : ''}
     <p>In daily life, people often use a broad phrase when they mean something specific. Someone may write "${DISTRESS?'I am feeling very stressed these days.':SCENARIOS[0]==='home'?'I am not happy with my spouse. I want a divorce.':'I am not feeling well.'}" when they mean "${DISTRESS?'I have not slept or eaten properly for weeks, I have stopped going to work, and I keep thinking everyone would be better off without me.':SCENARIOS[0]==='home'?'My spouse hit me and threatened me, and I am scared to go home tonight.':'I have chest pain going down my arm.'}" An AI assistant can only respond to the words it receives, so a broad phrase can lead to the wrong kind of help.</p>
+    ${(()=>{ const k = D.order[0], b = (D.taskB[k]||{}).text, a = (D.taskA[k]||{}).text; return (b||a) ? `<div class="card"><p style="margin-top:0"><b>Here is what you wrote</b></p><div class="pair">
+      <div><div class="lbl">With the timer</div><div class="quote">${b && b.trim() ? esc(b) : '<span class="muted">(nothing typed in time)</span>'}</div></div>
+      <div><div class="lbl">With no time limit</div><div class="quote">${a && a.trim() ? esc(a) : '<span class="muted">(nothing typed)</span>'}</div></div></div>
+      <p class="small muted" style="margin:10px 0 0">Many people include more detail when they have time. That difference is what we are studying.</p></div>` : ''; })()}
     <p>We did not explain this at the start, because knowing it would have changed how you wrote. The number task was real, but its main purpose was to make the first messages feel like a busy moment in everyday life. There are no right or wrong messages.</p>
     <div class="card small">
       <p><b>Your code:</b> <span class="code" style="user-select:all">${esc(pid)}</span></p>
@@ -945,11 +1008,13 @@ async function debrief(saved){
 async function run(){
   await welcome();
   await aboutYou();
+  save('started');
   await howItWorks();
 
   // Practice (not analysed)
   progress();
   D.practice = await quickRound('practice', 'Practice');
+  save('practice');
   await interstitial('Practice finished', NS===1 ? 'Now the real round begins.' : `Now the real rounds begin. There are ${WORDS[NS-1]}.`, 'Continue');
 
   // Task B — quick, timed, under memory load
@@ -957,6 +1022,7 @@ async function run(){
     progress();
     const key = D.order[i];
     D.taskB[key] = { position: i+1, ...(await quickRound(key, NS===1 ? 'The real round' : `Round ${i+1} of ${NS}`)) };
+    Object.assign(D.taskB[key], await feelScreen());
   }
   save('partB'); // checkpoint, not awaited
 
@@ -974,13 +1040,17 @@ async function run(){
     D.taskA[key] = { position: i+1, ...(await chatScreen(key, { timed:false, eyebrow: NS>1 ? `Story ${i+1} of ${NS} · no time limit` : 'No time limit',
       title:'Write to the assistant as precisely as you can about what is happening and what help you need' })) };
   }
+  save('careful');
 
   progress();
   for (let i=0;i<NS;i++) await afterQuestions(D.order[i], i);
 
-  await awareness();            // before any question that mentions language or words
+  save('questions');
+  await awareness();            // before anything that hints at what we measure
+  for (let i=0;i<NS;i++) await comprehension(D.order[i]);
   await languageBackground();
-  if (CONFIG.lextale) await lextale();
+  save('language');
+  if (CONFIG.lextale){ await lextale(); save('wordtest'); }
   if (DISTRESS) await moodCheck();
 
   D.completedAt = iso();
