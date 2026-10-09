@@ -227,7 +227,9 @@ const REPLIES = { // scripted replies to the broad reading (trust add-on only)
   rider: "Sorry about the problem with your order. You can report an issue from the Orders tab, and our team will review it within 24 to 48 hours."
 };
 
+const SID = makeId().slice(1);   // one id per session, so two people with the same code stay apart
 const D = {
+  sid: SID,
   pid, version: VERSION, preview: PREVIEW, startedAt: iso(), completedAt: null,
   device: { ua: navigator.userAgent, w: innerWidth, h: innerHeight, touch: isTouch, lang: navigator.language },
   order: shuffle(SCENARIOS), consent: null, about: {}, practice: null,
@@ -244,10 +246,32 @@ $('#topname').textContent = CONFIG.studyName;
 
 let screenStart = now(), screenName = 'start';
 let STOPPED = false;
+/* Progress pings: one small message per milestone, so the Progress tab shows where people stop. */
+const MILESTONES = [
+  [/^welcome$/, '01 Opened the link'], [/^about$/, '02 Agreed to take part'], [/^howitworks$/, '03 Gave age and gender'],
+  [/^story_practice_1$/, '04 Started the practice round'], [/^B_practice$/, '05 Writing practice message'],
+  [/^story_(?!practice).*_1$/, '06 Reading the story'], [/^B_(?!practice)/, '07 Writing the QUICK message'],
+  [/^puzzle_intro$/, '08 Quick message sent (shape break)'], [/^Astory_/, '09 Reading the story again'],
+  [/^A_/, '10 Writing the CAREFUL message'], [/^post_/, '11 Questions about the reply'], [/^awareness$/, '12 Study-aim question'],
+  [/^language$/, '13 Language questions'], [/^lextale_intro$/, '14 Word test'], [/^mood$/, '15 Mood check'],
+  [/^debrief$/, '16 FINISHED'], [/^stopped$/, 'Pressed Stop']
+];
+let lastStep = '';
+function ping(step){
+  if (PREVIEW || CONFIG.saveMode !== 'gsheet') return;
+  try { fetch(CONFIG.gsheetUrl, { method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ kind:'progress', pid, sid:SID, step, startedAt:D.startedAt, device:(isTouch?'Phone/tablet':'Computer') + ' ' + innerWidth + 'px' }) }); } catch(e) {}
+}
+document.addEventListener('visibilitychange', ()=>{
+  if (!inProgress || !lastStep) return;
+  ping(document.hidden ? lastStep + ' (LEFT THE PAGE)' : lastStep);
+});
 function render(html, name){
   if (STOPPED && name !== 'stopped') return;
   D.screenTimes.push([screenName, Math.round(now()-screenStart)]);
   screenStart = now(); screenName = name || '';
+  const ms = MILESTONES.find(([re]) => re.test(name || ''));
+  if (ms && ms[1] !== lastStep){ lastStep = ms[1]; ping(lastStep); }
   currentGate = null; app.innerHTML = html; scrollTo(0,0); app.focus({preventScroll:true});
 }
 const clicked = sel => new Promise(r => $(sel).addEventListener('click', r, {once:true}));
@@ -497,7 +521,7 @@ async function welcome(){
       <li>Do a short puzzle and answer some questions about yourself.</li></ul>
       <p class="small muted" style="margin:0">Please use the same device from start to finish, in a place where you can focus.</p></div>
     <div class="card small">
-      <p><b>Your information.</b> Your answers and messages are saved without your name, under a code. The research team, and AI tools used by the research team, will analyse them later. The help assistant in this study does not reply to you.</p>
+      <p><b>Your information.</b> Your answers and messages are saved without your name, under a code. Everything you type in the message box is saved, including text you delete. The research team, and AI tools used by the research team, will analyse them later. The help assistant in this study does not reply to you.</p>
       <p><b>About the aims.</b> Some aims of the study are explained at the end, so that knowing them in advance does not change how you take part.</p>
       <p><b>Your choice.</b> Taking part is voluntary. You can stop at any time${DISTRESS?' with the Stop button at the top of the page, or':''} by closing the page, with no penalty. ${NS===1&&SCENARIOS[0]==='distress'?'The story is about someone going through a very hard time emotionally, including thoughts that life is not worth living. It uses simple drawings and shows no self-harm. Please do not take part if you are going through a very low period yourself.':NS===1&&SCENARIOS[0]==='home'?'The story describes violence at home between spouses. It has simple drawings and no graphic images. If this could upset you, for example because of your own experiences, please do not take part.':NS===1&&SCENARIOS[0]==='health'?'The story describes suddenly feeling unwell at night. If that could upset you, for example because of a recent illness or loss, please do not take part.':'Some stories show stressful but everyday situations, such as feeling unwell or losing money.'}</p>
       <p style="margin:0"><b>Contact.</b> ${esc(CONFIG.researcherName)}, ${esc(CONFIG.institution)}: <span style="user-select:all">${esc(CONFIG.researcherEmail)}</span></p>
@@ -623,7 +647,7 @@ function chatScreen(key, { timed, eyebrow, title }){
     <p class="hint" id="hint" role="status"></p></div></div>`, (timed?'B_':'A_')+key);
 
   const ta=$('#ta'), send=$('#send'), hint=$('#hint');
-  const t0 = now(); const log=[]; let first=null, ins=0, del=0, pastes=0, hidden=0, done=false, tick=null;
+  const t0 = now(); const log=[]; const drafts=[]; let lastVal='', lastDel=false; let first=null, ins=0, del=0, pastes=0, hidden=0, done=false, tick=null;
   const code = t => ({insertText:'i',insertCompositionText:'c',deleteContentBackward:'b',deleteContentForward:'f',insertReplacementText:'r',insertLineBreak:'n',deleteWordBackward:'w',historyUndo:'u'}[t] || t || '?');
   const grow = () => { ta.style.height='auto'; ta.style.height = Math.min(180, ta.scrollHeight+2)+'px'; };
   const block = e => { e.preventDefault(); pastes++; hint.textContent='Pasting is turned off here. Please type your message.'; };
@@ -633,6 +657,9 @@ function chatScreen(key, { timed, eyebrow, title }){
     const t = Math.round(now()-t0); if(first===null) first=t;
     if (/^delete/.test(e.inputType||'')) del++; else ins++;
     if (log.length<4000) log.push([t, code(e.inputType), ta.value.length]);
+    const isDel = /^delete/.test(e.inputType||'');
+    if (isDel && !lastDel && lastVal.trim() && drafts.length < 60) drafts.push([t, lastVal]);   // the text just before they started deleting
+    lastDel = isDel; lastVal = ta.value;
     send.disabled = !ta.value.trim(); grow(); hint.textContent='';
   });
   const onVis = () => { if (document.hidden) hidden++; };
@@ -653,7 +680,7 @@ function chatScreen(key, { timed, eyebrow, title }){
       if (auto && $('#dead')){ beep(220, 0.35, 0.18); buzz(300); setTimeout(()=>{ const d=$('#dead'); if (d) d.hidden=false; }, 500); }
       const rec = { text, chars: text.length, words, firstInputMs: first, lastInputMs: lastInput, durationMs: endMs, autoSent: auto,
         typingWhenTimeUp: auto && lastInput !== null && endMs - lastInput < 1500,
-        inserts: ins, deletions: del, pasteBlocked: pastes, leftPageCount: hidden, events: log };
+        inserts: ins, deletions: del, pasteBlocked: pastes, leftPageCount: hidden, events: log, textBeforeDeleting: drafts };
       setTimeout(()=>resolve(rec), auto && CONFIG.batteryCue ? 1900 : 1100);
     }
     $('#comp').addEventListener('submit', e=>{ e.preventDefault(); if(ta.value.trim()) finish(false); });
