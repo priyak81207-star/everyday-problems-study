@@ -269,7 +269,7 @@ const MILESTONES = [
   [/^puzzle_intro$/, '08 Quick message sent (shape break)'], [/^Astory_/, '09 Reading the story again'],
   [/^feel$/, '07b How it felt'], [/^A_/, '10 Writing the CAREFUL message'], [/^post_/, '11 Questions about the reply'], [/^awareness$/, '12 Study-aim question'],
   [/^comprehension$/, '12b What they saw in the story'], [/^language$/, '13 Language questions'], [/^lextale_intro$/, '14 Word test'], [/^mood$/, '15 Mood check'],
-  [/^debrief$/, '16 FINISHED'], [/^stopped$/, 'Pressed Stop']
+  [/^pilot_feedback$/, '15b Pilot feedback'], [/^debrief$/, '16 FINISHED'], [/^stopped$/, 'Pressed Stop']
 ];
 let lastStep = '';
 function ping(step){
@@ -966,6 +966,25 @@ async function moodCheck(){
   D.moodEndAnswer = MOOD_OPTS[+val('mood')];
 }
 
+const IS_PILOT = /^PILOT/i.test(pid);
+const PILOT_TIME = ['Too short', 'About right', 'Too long'];
+const PILOT_LEN = ['Shorter than I expected', 'About what I expected', 'Longer than I expected'];
+async function pilotFeedback(){
+  render(`<div class="stack"><div><p class="eyebrow">Pilot feedback</p><h2>Help us improve the study</h2></div>
+    <p class="muted" style="margin:0">You are one of the first people to try this study. Your feedback will shape the final version.</p>
+    <div class="field"><label for="pfConfusing">Was anything confusing? Which screen, and what?</label><textarea id="pfConfusing" rows="3"></textarea></div>
+    <div class="field"><label for="pfPictures">Was any picture in the story unclear? Which one, and what did you think it showed?</label><textarea id="pfPictures" rows="3"></textarea></div>
+    ${pick('pfTime','The time limit for the first message (30 seconds) was:',PILOT_TIME)}
+    ${pick('pfLen','The whole study felt:',PILOT_LEN)}
+    <div class="field"><label for="pfTech">Any technical problems (screen, sound, buttons)?</label><textarea id="pfTech" rows="2"></textarea></div>
+    <div class="field"><label for="pfOther">Anything else?</label><textarea id="pfOther" rows="2"></textarea></div>
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'pilot_feedback');
+  gate('#go', ()=> val('pfTime')!==null && val('pfLen')!==null);
+  await clicked('#go');
+  D.pilotFeedback = { confusing: $('#pfConfusing').value.trim(), pictures: $('#pfPictures').value.trim(),
+    timeLimit: PILOT_TIME[+val('pfTime')], length: PILOT_LEN[+val('pfLen')], technical: $('#pfTech').value.trim(), other: $('#pfOther').value.trim() };
+}
+
 async function debrief(saved){
   progress(); inProgress = false; $('#stopSlot').hidden = true;
   render(`<div class="stack">
@@ -1052,6 +1071,7 @@ async function run(){
   save('language');
   if (CONFIG.lextale){ await lextale(); save('wordtest'); }
   if (DISTRESS) await moodCheck();
+  if (IS_PILOT) await pilotFeedback();
 
   D.completedAt = iso();
   D.screenTimes.push([screenName, Math.round(now()-screenStart)]);
