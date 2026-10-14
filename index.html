@@ -98,8 +98,6 @@ main:focus{outline:none}
 @media (prefers-reduced-motion:reduce){.beat,.narr{animation:none}}
 .cell.hit{border-color:var(--accent);background:var(--bubble)}
 .cell.miss{border-color:var(--alarm)}
-.lexbar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;width:100%;max-width:320px}
-.lexbar i{display:block;height:100%;background:var(--accent)}
 .pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .pair .lbl{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
 .beat svg{width:100%;height:auto;display:block}
@@ -170,8 +168,18 @@ main:focus{outline:none}
 .cell svg{width:58%;height:58%}
 .cell .shape{fill:var(--accent)}
 
-.lexword{font-family:var(--font-mono);font-size:clamp(34px,10vw,52px);font-weight:600;margin:24px 0}
-.lexbtn{min-width:120px}
+.pcount{font-family:var(--font-mono);font-weight:600;font-size:14px;color:var(--muted);display:flex;justify-content:space-between}
+.ptimer{height:8px;background:var(--line);border-radius:8px;overflow:hidden;margin-top:-8px}
+.ptimer i{display:block;height:100%;width:100%;background:var(--accent);transform-origin:left}
+.ptimer.low i{background:var(--alarm)}
+.pq{font-weight:700;font-size:19px;margin:0}
+.ppair{display:grid;gap:12px}
+.pmsg{font:inherit;text-align:left;color:var(--ink);background:var(--bubble);border:2px solid transparent;border-radius:18px 18px 18px 6px;padding:16px 18px;cursor:pointer;min-height:64px}
+@media (hover:hover){.pmsg:hover:not(:disabled){border-color:var(--accent)}}
+.pmsg:disabled{cursor:default}
+.pmsg.picked{border-color:var(--accent);background:var(--surface)}
+.pmsg:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+.ptoast{text-align:center;color:var(--alarm);font-weight:700;min-height:1.5em;margin:0}
 .code{font-family:var(--font-mono);font-size:22px;font-weight:600;letter-spacing:.06em}
 pre.dump{max-height:240px;overflow:auto;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
@@ -204,10 +212,10 @@ const CONFIG = {
   scenarios: ['distress'],
   beatMinMs: 2500,         // earliest "Next" on each picture of the story (reading is NOT timed)
   trustQuestions: true,    // optional add-on: scripted reply + trust items
-  lextale: true,           // built-in LexTALE vocabulary test at the end (about 4 minutes)
+  messagePairs: true,      // message-pairs test at the end (about 2 minutes): quick round, then careful round
   puzzleTrials: 8
 };
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 /* ========================================================================= */
 const $ = (s, r=document) => r.querySelector(s);
@@ -254,7 +262,7 @@ const D = {
 };
 
 /* ---------- progress ---------- */
-const TOTAL_STEPS = 13 + 3*NS; let stepNo = 0;
+const TOTAL_STEPS = 14 + 3*NS; let stepNo = 0;
 function progress(){ stepNo++; $('#prog').style.width = Math.min(100, stepNo/TOTAL_STEPS*100) + '%'; }
 if (PREVIEW) $('#previewTag').hidden = false;
 $('#topname').textContent = CONFIG.studyName;
@@ -268,7 +276,7 @@ const MILESTONES = [
   [/^story_(?!practice).*_1$/, '06 Reading the story'], [/^B_(?!practice)/, '07 Writing the QUICK message'],
   [/^puzzle_intro$/, '08 Quick message sent (shape break)'], [/^Astory_/, '09 Reading the story again'],
   [/^feel$/, '07b How it felt'], [/^A_/, '10 Writing the CAREFUL message'], [/^post_/, '11 Questions about the reply'], [/^awareness$/, '12 Study-aim question'],
-  [/^comprehension$/, '12b What they saw in the story'], [/^language$/, '13 Language questions'], [/^lextale_intro$/, '14 Word test'], [/^mood$/, '15 Mood check'],
+  [/^comprehension$/, '12b What they saw in the story'], [/^language$/, '13 Language questions'], [/^pairs_quick_intro$/, '14 Message pairs (quick)'], [/^pairs_careful_intro$/, '14b Message pairs (careful)'], [/^mood$/, '15 Mood check'],
   [/^pilot_feedback$/, '15b Pilot feedback'], [/^debrief$/, '16 FINISHED'], [/^stopped$/, 'Pressed Stop']
 ];
 let lastStep = '';
@@ -848,45 +856,81 @@ async function languageBackground(){
     canDo: can.map(i=>CANDO_OPTS[i]), canDoCount: can.length, gigWork: val('gig') };
 }
 
-/* LexTALE (Lemhöfer & Broersma, 2012): 60 letter strings, 40 real English words and 20 non-words.
-   Score = (% words correct + % non-words correct) / 2. Verify the list against lextale.com before launch. */
-const LEX_PRACTICE = [['platery',0],['denial',1],['generic',1]];
-const LEX_ITEMS = [['mensible',0],['scornful',1],['stoutly',1],['ablaze',1],['kermshaw',0],['moonlit',1],['lofty',1],['hurricane',1],['flaw',1],['alberation',0],
-  ['unkempt',1],['breeding',1],['festivity',1],['screech',1],['savoury',1],['plaudate',0],['shin',1],['fluid',1],['spaunch',0],['allied',1],
-  ['slain',1],['recipient',1],['exprate',0],['eloquence',1],['cleanliness',1],['dispatch',1],['rebondicate',0],['ingenious',1],['bewitch',1],['skave',0],
-  ['plaintively',1],['kilp',0],['interfate',0],['hasty',1],['lengthy',1],['fray',1],['crumper',0],['upkeep',1],['majestic',1],['magrity',0],
-  ['nourishment',1],['abergy',0],['proom',0],['turmoil',1],['carbohydrate',1],['scholar',1],['turtle',1],['fellick',0],['destription',0],['cylinder',1],
-  ['censorship',1],['celestial',1],['rascal',1],['purrage',0],['pulsh',0],['muddy',1],['quirty',0],['pudour',0],['listless',1],['wrought',1]];
-async function lextale(){
-  progress();
-  render(`<div class="stack"><div><p class="eyebrow">Word test · about 4 minutes</p><h2>Is it a real English word?</h2></div>
-    <p>You will see 60 letter strings, one at a time. Some are real English words and some are not. Tap <b>Yes</b> if you know it is a real English word, even if you cannot say what it means. If you are not sure, tap <b>No</b>.</p>
-    <p class="small muted">Spelling is British English. There are 3 practice words first.</p>
-    <div class="btns"><button class="btn" id="go">Start</button></div></div>`, 'lextale_intro');
-  await clicked('#go');
-  const run = async (items, label) => {
-    const out = [];
+/* Message pairs: replaces LexTALE. Two short messages to a mental well-being support assistant, one broad and one precise.
+   Quick round (timed) = what feels natural; careful round (untimed) = whether they recognise the precise one.
+   Set 1 matches the five key details of the story; Set 2 uses other common broad words. */
+const PAIRS = [
+  { set:1, id:'not_sleeping',     broad:"Too much tension these days, my mind just won't switch off.", precise:"I can't sleep at night." },
+  { set:1, id:'not_eating',       broad:"I'm not feeling well these days.",                              precise:"I haven't been able to eat for days." },
+  { set:1, id:'lasting_weeks',    broad:"This has been going on for quite a while now.",                 precise:"This has been going on for three weeks." },
+  { set:1, id:'stopped_work_or_withdrawn', broad:"I just need some time away from everything and everyone.", precise:"I've stopped going to work and I'm avoiding everyone." },
+  { set:1, id:'thoughts_of_not_wanting_to_live', broad:"I'm feeling very low and nothing feels right.", precise:"I keep thinking everyone would be better off without me." },
+  { set:2, id:'concentration',    broad:"I'm so confused these days, my head is all over the place.",   precise:"I can't concentrate on anything." },
+  { set:2, id:'panic',            broad:"I'm a bit disturbed, something feels off.",                     precise:"My heart races and I can't breathe properly." },
+  { set:2, id:'crying',           broad:"I'm upset about a lot of things lately.",                       precise:"I've been crying every day." },
+  { set:2, id:'loss_of_interest', broad:"I'm not in a good mood these days.",                            precise:"I've lost interest in everything I used to enjoy." },
+  { set:2, id:'indecision',       broad:"I'm feeling stuck and I don't know what to do.",                precise:"I can't make even small decisions." }
+];
+const PAIR_QUICK_MS = 9500;
+async function messagePairs(){
+  const hang = () => new Promise(()=>{});
+  const order = () => shuffle(PAIRS.filter(p=>p.set===1)).concat(shuffle(PAIRS.filter(p=>p.set===2)))
+    .map(p => ({ ...p, preciseFirst: Math.random() < .5 }));
+  const out = { quickMs: PAIR_QUICK_MS, quick: [], careful: [] };
+  const round = async (quick) => {
+    progress();
+    render(quick
+      ? `<div class="stack"><div><p class="eyebrow">Messages · quick round</p><h2>Tap fast</h2></div>
+         <p>Imagine you are chatting with a <b>mental well-being support assistant</b>. You will see two messages at a time. <b>Tap the one you would type to the assistant right now.</b></p>
+         <p class="muted">You have about 9 seconds for each. There is no right or wrong answer. Go with your first feeling.</p>
+         <div class="btns"><button class="btn" id="go">Start</button></div></div>`
+      : `<div class="stack"><div><p class="eyebrow">Messages · careful round</p><h2>Take your time</h2></div>
+         <p>The same messages, the same assistant. This time, <b>pick the one that would help the assistant understand exactly what is happening.</b></p>
+         <p class="muted">No time limit.</p>
+         <div class="btns"><button class="btn" id="go">Start</button></div></div>`, quick ? 'pairs_quick_intro' : 'pairs_careful_intro');
+    if (STOPPED) return hang();
+    await clicked('#go');
+    const items = order(), res = [];
     for (let i=0;i<items.length;i++){
-      render(`<div class="stack" style="align-items:center;text-align:center;padding-top:6vh">
-        <p class="eyebrow">${label} ${i+1} of ${items.length}</p>
-        <div class="lexbar" aria-hidden="true"><i style="width:${Math.round(i/items.length*100)}%"></i></div>
-        <p class="lexword">${esc(items[i][0])}</p>
-        <div class="btns" style="justify-content:center"><button class="btn lexbtn" id="no">No</button><button class="btn lexbtn" id="yes">Yes</button></div></div>`, 'lextale');
+      const it = items[i];
+      const opts = it.preciseFirst ? [['precise', it.precise], ['broad', it.broad]] : [['broad', it.broad], ['precise', it.precise]];
+      render(`<div class="stack">
+        <div class="pcount"><span>${quick ? 'Quick round' : 'Careful round'}</span><span>${i+1} of ${items.length}</span></div>
+        ${quick ? '<div class="ptimer" id="pt" aria-hidden="true"><i id="pti"></i></div>' : ''}
+        <p class="pq">${quick ? 'Which would you type to the assistant right now?' : 'Which would help the assistant understand exactly what is happening?'}</p>
+        <div class="ppair">${opts.map(o=>`<button class="pmsg" data-k="${o[0]}">${esc(o[1])}</button>`).join('')}</div>
+        <p class="ptoast" id="ptoast" aria-live="polite"></p></div>`, (quick ? 'pairs_quick_' : 'pairs_careful_') + (i+1));
+      if (STOPPED) return hang();
       const t0 = now();
-      const yes = await new Promise(r=>{ $('#yes').addEventListener('click',()=>r(1),{once:true}); $('#no').addEventListener('click',()=>r(0),{once:true}); });
-      out.push({ item: items[i][0], isWord: items[i][1], saidYes: yes, correct: yes === items[i][1], ms: Math.round(now()-t0) });
+      let timer = null;
+      const choice = await new Promise(resolve => {
+        document.querySelectorAll('.pmsg').forEach(b => b.addEventListener('click', () => {
+          document.querySelectorAll('.pmsg').forEach(x => x.disabled = true); b.classList.add('picked'); resolve(b.dataset.k);
+        }, { once:true }));
+        if (quick){
+          const bar = $('#pti'), pt = $('#pt');
+          bar.style.transition = `transform ${PAIR_QUICK_MS}ms linear`;
+          requestAnimationFrame(()=>requestAnimationFrame(()=>{ bar.style.transform = 'scaleX(0)'; }));
+          setTimeout(()=>pt && pt.classList.add('low'), PAIR_QUICK_MS - 2000);
+          timer = setTimeout(() => { document.querySelectorAll('.pmsg').forEach(x => x.disabled = true);
+            const t = $('#ptoast'); if (t) t.textContent = 'Time up. Moving on.'; resolve('none'); }, PAIR_QUICK_MS);
+        }
+      });
+      clearTimeout(timer);
+      const ms = Math.round(now() - t0);
+      res.push({ set: it.set, id: it.id, choice, ms: choice === 'none' ? PAIR_QUICK_MS : ms, precisePosition: it.preciseFirst ? 'top' : 'bottom', position: i+1 });
+      await sleep(choice === 'none' ? 700 : 250);
+      if (STOPPED) return hang();
     }
-    return out;
+    return res;
   };
-  await run(LEX_PRACTICE, 'Practice');
-  const r = await run(LEX_ITEMS, 'Word');
-  const w = r.filter(x=>x.isWord), n = r.filter(x=>!x.isWord);
-  const score = (w.filter(x=>x.correct).length/w.length*100 + n.filter(x=>x.correct).length/n.length*100) / 2;
-  render(`<div class="stack" style="align-items:center;text-align:center;padding-top:6vh"><p class="eyebrow">Word test done</p>
-    <h2>Your score: ${Math.round(score)}%</h2><p class="muted">Most people who use English every day score between 60% and 100%.</p>
-    <div class="btns" style="justify-content:center"><button class="btn" id="go">Continue</button></div></div>`, 'lextale_done');
-  await clicked('#go');
-  D.lextale = { score: Math.round(score*100)/100, wordsCorrect: w.filter(x=>x.correct).length, nonwordsCorrect: n.filter(x=>x.correct).length, items: r };
+  out.quick = await round(true);
+  out.careful = await round(false);
+  const sc = (arr, set) => arr.filter(x => x.set === set && x.choice === 'precise').length;
+  const qms = out.quick.filter(x => x.choice !== 'none').map(x => x.ms).sort((a,b)=>a-b);
+  out.scores = { quickSet1: sc(out.quick,1), quickSet2: sc(out.quick,2), carefulSet1: sc(out.careful,1), carefulSet2: sc(out.careful,2),
+    quickTimeouts: out.quick.filter(x => x.choice === 'none').length, quickMedianMs: qms.length ? qms[Math.floor(qms.length/2)] : null };
+  D.wordPairs = out;
 }
 
 const SAW = {
@@ -1071,7 +1115,7 @@ async function run(){
   for (let i=0;i<NS;i++) await comprehension(D.order[i]);
   await languageBackground();
   save('language');
-  if (CONFIG.lextale){ await lextale(); save('wordtest'); }
+  if (CONFIG.messagePairs){ await messagePairs(); save('wordtest'); }
   if (DISTRESS) await moodCheck();
   if (IS_PILOT) await pilotFeedback();
 
