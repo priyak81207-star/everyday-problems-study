@@ -213,9 +213,9 @@ const CONFIG = {
   beatMinMs: 2500,         // earliest "Next" on each picture of the story (reading is NOT timed)
   trustQuestions: false,   // off: the scripted reply + trust items are not part of Study 1
   messagePairs: true,      // message-pairs test at the end (about 2 minutes): quick round, then careful round
-  puzzleTrials: 8
+  puzzleTrials: 4
 };
-const VERSION = '1.4.0';
+const VERSION = '2.0.0';
 
 /* ========================================================================= */
 const $ = (s, r=document) => r.querySelector(s);
@@ -262,7 +262,7 @@ const D = {
 };
 
 /* ---------- progress ---------- */
-const TOTAL_STEPS = 15 + 3*NS; let stepNo = 0;
+const TOTAL_STEPS = 14 + 2*NS; let stepNo = 0;
 function progress(){ stepNo++; $('#prog').style.width = Math.min(100, stepNo/TOTAL_STEPS*100) + '%'; }
 if (PREVIEW) $('#previewTag').hidden = false;
 $('#topname').textContent = CONFIG.studyName;
@@ -541,7 +541,7 @@ async function welcome(){
   render(`<div class="stack">
     <div><p class="eyebrow">Welcome</p><h1>Handling everyday problems</h1></div>
     <p>Thank you for your interest. This study looks at how people deal with everyday problems while keeping other information in mind.</p>
-    <div class="card"><p><b>What you will do (about ${NS===1?'15':'30'} minutes)</b></p>
+    <div class="card"><p><b>What you will do (about ${NS===1?'10':'25'} minutes)</b></p>
       <ul class="plain"><li>Look at ${NS===1?'a short picture story':'short picture stories'}.</li>
       <li>Send a message to a help assistant${NS===1?'':' about each story'}, while remembering a number.</li>
       <li>Do a short puzzle and answer some questions about yourself.</li></ul>
@@ -577,16 +577,26 @@ async function aboutYou(){
 async function howItWorks(){
   progress();
   render(`<div class="stack">
-    <div><p class="eyebrow">How it works</p><h2>Each round has four steps</h2></div>
+    <div><p class="eyebrow">How it works</p><h2>Four quick steps</h2></div>
     <ol class="steps">
-      <li><span><b>Remember a number.</b> It is shown for a few seconds. Keep it in mind until the end of the round.</span></li>
+      <li><span><b>Remember a short number.</b> It is shown for a few seconds. You will type it at the end.</span></li>
       <li><span><b>Read a short picture story.</b> Imagine it is happening to you. Take your time: reading is not timed.</span></li>
-      <li><span><b>Send a message to the help assistant</b> asking for help. ${CONFIG.batteryCue?'Your phone\'s battery is almost empty, so you have only ':'You have '}${CONFIG.taskBSeconds} seconds. A timer shows the time left${CONFIG.sound?', with a beep in the last 10 seconds':''}. When time runs out, your message is sent automatically.</span></li>
+      <li><span><b>Send a message to the support app</b> asking for help. ${CONFIG.batteryCue?'Your phone\'s battery is almost empty, so you have only ':'You have '}${CONFIG.taskBSeconds} seconds. A timer shows the time left${CONFIG.sound?', with a beep in the last 10 seconds':''}. When time runs out, your message is sent automatically.</span></li>
       <li><span><b>Type the number</b> you remembered.</span></li>
     </ol>
+    <div aria-hidden="true">
+      <p class="small muted" style="margin:0 0 6px">This is what the message screen looks like:</p>
+      <div class="chat" style="min-height:0;pointer-events:none">
+        <div class="chat-head"><div class="avatar">${botIcon}</div><div class="who"><b>Well-being Support</b><span class="status"><i></i>Online</span></div>
+          ${CONFIG.batteryCue ? `<div class="batt"><svg width="26" height="14" viewBox="0 0 26 14"><rect x="1" y="1" width="21" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="23" y="4.5" width="2.2" height="5" rx="1" fill="currentColor"/><rect x="3" y="3" width="4" height="8" rx="1" fill="var(--alarm)"/></svg><span>4%</span></div>` : ''}
+          <div class="clock">0:${String(CONFIG.taskBSeconds).padStart(2,'0')}</div></div>
+        <div class="msgs" style="min-height:0"><div class="bub them">Hi! How can I help you today?</div></div>
+        <div class="composer"><textarea rows="1" placeholder="Type your message here" disabled></textarea><span class="send" style="display:grid">${sendIcon}</span></div>
+      </div>
+      <p class="small muted" style="margin:6px 0 0">The timer starts when this screen opens. Type in the box at the bottom; your message is sent when time runs out.</p>
+    </div>
     <p>Write the way you normally would. Pasting is turned off.${CONFIG.sound?' If you can, turn your sound on.':''}</p>
-    <p>Let's start with one practice round.</p>
-    <div class="btns"><button class="btn" id="go">Start practice</button></div></div>`, 'howitworks');
+    <div class="btns"><button class="btn" id="go">Start</button></div></div>`, 'howitworks');
   await clicked('#go');
 }
 
@@ -598,7 +608,7 @@ async function interstitial(title, sub, btn){
 }
 
 async function showDigits(){
-  const digits = String(10000 + Math.floor(Math.random()*90000));
+  const digits = String(10 + Math.floor(Math.random()*90));
   const n = 4;
   render(`<div class="stack"><div><p class="eyebrow">Step 1</p><h2>Remember this number</h2></div>
     <div class="digits" aria-live="polite">${digits.split('').join(' ')}</div>
@@ -665,7 +675,7 @@ function chatScreen(key, { timed, eyebrow, title }){
       ${timed && CONFIG.batteryCue ? '<div class="dead" id="dead" hidden><span>Phone switched off</span></div>' : ''}
       <form class="composer" id="comp" autocomplete="off">
         <label for="ta" class="sr" hidden>Message</label>
-        <textarea id="ta" rows="1" placeholder="Type a message" spellcheck="false"></textarea>
+        <textarea id="ta" rows="1" placeholder="${timed ? 'Type your message here' : 'Type a message'}" spellcheck="false"></textarea>
         <button class="send" id="send" type="submit" disabled aria-label="Send">${sendIcon}</button>
       </form>
     </div>
@@ -770,7 +780,7 @@ const SHAPES = {
 async function puzzle(){
   progress();
   render(`<div class="stack"><div><p class="eyebrow">Short break</p><h2>Find the different shape</h2></div>
-    <p>In each picture, one shape is different from the others. Tap it. There are ${CONFIG.puzzleTrials} pictures, and it takes about a minute.</p>
+    <p>In each picture, one shape is different from the others. Tap it. There are ${CONFIG.puzzleTrials} pictures, and it takes a few seconds each.</p>
     <div class="grid3" style="max-width:220px;pointer-events:none" aria-hidden="true">${Array.from({length:9},(_,i)=>`<div class="cell"><svg viewBox="-22 -22 44 44"><g class="shape">${i===4?SHAPES.triangle:SHAPES.circle}</g></svg></div>`).join('')}</div>
     <p class="small muted" style="text-align:center;margin:0">Example: the triangle is the different one.</p>
     <div class="btns"><button class="btn" id="go">Start</button></div></div>`, 'puzzle_intro');
@@ -855,8 +865,8 @@ async function wellbeingReplies(){
 }
 
 const AGE_OPTS = ['From birth, or before age 3','When I started school (about age 3 to 6)','In primary school (about age 6 to 10)','After age 10'];
-const USE_OPTS = ['Talking with my family','Talking with friends','At work or college','Texting friends','Social media posts and comments','Watching videos or films','Reading news','Talking to customer support or chatbots'];
-const CANDO_OPTS = ['Ask for directions or order food','Follow a conversation between two people speaking fast','Follow the news on TV or YouTube','Explain a health problem to a doctor','Write a message asking a stranger for help','Write a complaint email to a company','Argue for my opinion in a meeting or class','Read a novel for pleasure'];
+const CANDO_OPTS = ['Follow the news on TV or YouTube','Explain a health problem to a doctor','Write a message asking a stranger for help','Argue for my opinion in a meeting or class'];
+const DAY_OPTS = ['Very little of my day','Some of my day','Most of my day','Almost all of my day'];
 async function languageBackground(){
   progress();
   render(`<div class="stack">
@@ -866,16 +876,16 @@ async function languageBackground(){
     ${choice('whereEng','Where did you mainly learn English?',['At home: my family spoke English with me','At school','Both at home and at school','Somewhere else'])}
     ${choice('medium','What was the main medium of teaching in your school?',['English','Hindi','Another Indian language','Mixed'])}
     ${choice('edu','Highest education completed',['School (up to Class 12)','Diploma','Bachelor\'s degree','Master\'s degree or higher'])}
-    ${ticks('useEng','Where do you use English in a normal week?',USE_OPTS.concat(['None of these']))}
+    ${pick('dayEng','On a normal day, how much of your talking, reading and writing is in English?',DAY_OPTS)}
     ${ticks('cando','Which of these could you do in English without much difficulty?',CANDO_OPTS.concat(['None of these']))}
     <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'language');
-  gate('#go', ()=> $('#homeLang').value.trim() && val('ageEng')!==null && val('whereEng') && val('medium') && val('edu') && ticked('useEng').length && ticked('cando').length);
+  gate('#go', ()=> $('#homeLang').value.trim() && val('ageEng')!==null && val('whereEng') && val('medium') && val('edu') && val('dayEng')!==null && ticked('cando').length);
   await clicked('#go');
-  const use = ticked('useEng').filter(i=>i<USE_OPTS.length), can = ticked('cando').filter(i=>i<CANDO_OPTS.length);
+  const can = ticked('cando').filter(i=>i<CANDO_OPTS.length);
   D.language = { homeLanguages: $('#homeLang').value.trim(),
     ageStartedEnglish: AGE_OPTS[+val('ageEng')], ageStartedEnglishCode: +val('ageEng'),
     whereLearned: val('whereEng'), schoolMedium: val('medium'), education: val('edu'),
-    englishUseContexts: use.map(i=>USE_OPTS[i]), englishUseCount: use.length,
+    englishDaily: DAY_OPTS[+val('dayEng')], englishDailyCode: +val('dayEng') + 1, englishUseContexts: [DAY_OPTS[+val('dayEng')]],
     canDo: can.map(i=>CANDO_OPTS[i]), canDoCount: can.length };
 }
 
@@ -897,7 +907,7 @@ const PAIRS = [
 const PAIR_QUICK_MS = 9500;
 async function messagePairs(){
   const hang = () => new Promise(()=>{});
-  const order = () => shuffle(PAIRS.filter(p=>p.set===1)).concat(shuffle(PAIRS.filter(p=>p.set===2)))
+  const order = () => shuffle(PAIRS.filter(p=>p.set===1))
     .map(p => ({ ...p, preciseFirst: Math.random() < .5 }));
   const out = { quickMs: PAIR_QUICK_MS, quick: [], careful: [] };
   const round = async (quick) => {
@@ -905,7 +915,7 @@ async function messagePairs(){
     render(quick
       ? `<div class="stack"><div><p class="eyebrow">Messages · quick round</p><h2>Tap fast</h2></div>
          <p>Imagine you are chatting with a <b>mental well-being support assistant</b>. You will see two messages at a time. <b>Tap the one you would type to the assistant right now.</b></p>
-         <p class="muted">You have about 9 seconds for each. There is no right or wrong answer. Go with your first feeling.</p>
+         <p class="muted">There are 5 pairs. You have about 9 seconds for each. There is no right or wrong answer. Go with your first feeling.</p>
          <div class="btns"><button class="btn" id="go">Start</button></div></div>`
       : `<div class="stack"><div><p class="eyebrow">Messages · careful round</p><h2>Take your time</h2></div>
          <p>The same messages, the same assistant. This time, <b>pick the one that would help the assistant understand exactly what is happening.</b></p>
@@ -951,7 +961,7 @@ async function messagePairs(){
   out.careful = await round(false);
   const sc = (arr, set) => arr.filter(x => x.set === set && x.choice === 'precise').length;
   const qms = out.quick.filter(x => x.choice !== 'none').map(x => x.ms).sort((a,b)=>a-b);
-  out.scores = { quickSet1: sc(out.quick,1), quickSet2: sc(out.quick,2), carefulSet1: sc(out.careful,1), carefulSet2: sc(out.careful,2),
+  out.scores = { quickSet1: sc(out.quick,1), quickSet2: null, carefulSet1: sc(out.careful,1), carefulSet2: null,
     quickTimeouts: out.quick.filter(x => x.choice === 'none').length, quickMedianMs: qms.length ? qms[Math.floor(qms.length/2)] : null };
   D.wordPairs = out;
 }
@@ -1099,13 +1109,8 @@ async function run(){
   save('started');
   await howItWorks();
 
-  // Practice (not analysed)
-  progress();
-  D.practice = await quickRound('practice', 'Practice');
-  save('practice');
-  await interstitial('Practice finished', NS===1 ? 'Now the real round begins.' : `Now the real rounds begin. There are ${WORDS[NS-1]}.`, 'Continue');
 
-  // Task B — quick, timed, under memory load
+  // Task B — quick, timed (no practice round: the instructions show the chat screen instead)
   for (let i=0;i<NS;i++){
     progress();
     const key = D.order[i];
