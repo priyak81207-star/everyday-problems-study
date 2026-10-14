@@ -215,7 +215,7 @@ const CONFIG = {
   messagePairs: true,      // message-pairs test at the end (about 2 minutes): quick round, then careful round
   puzzleTrials: 8
 };
-const VERSION = '1.3.0';
+const VERSION = '1.4.0';
 
 /* ========================================================================= */
 const $ = (s, r=document) => r.querySelector(s);
@@ -262,7 +262,7 @@ const D = {
 };
 
 /* ---------- progress ---------- */
-const TOTAL_STEPS = 14 + 3*NS; let stepNo = 0;
+const TOTAL_STEPS = 15 + 3*NS; let stepNo = 0;
 function progress(){ stepNo++; $('#prog').style.width = Math.min(100, stepNo/TOTAL_STEPS*100) + '%'; }
 if (PREVIEW) $('#previewTag').hidden = false;
 $('#topname').textContent = CONFIG.studyName;
@@ -275,7 +275,7 @@ const MILESTONES = [
   [/^story_practice_1$/, '04 Started the practice round'], [/^B_practice$/, '05 Writing practice message'],
   [/^story_(?!practice).*_1$/, '06 Reading the story'], [/^B_(?!practice)/, '07 Writing the QUICK message'],
   [/^puzzle_intro$/, '08 Quick message sent (shape break)'], [/^Astory_/, '09 Reading the story again'],
-  [/^feel$/, '07b How it felt'], [/^A_/, '10 Writing the CAREFUL message'], [/^post_/, '11 Questions about the reply'], [/^awareness$/, '12 Study-aim question'],
+  [/^feel$/, '07b How it felt'], [/^A_/, '10 Writing the CAREFUL message'], [/^post_/, '11 Questions about their message'], [/^replies$/, '11b Two app replies'], [/^awareness$/, '12 Study-aim question'],
   [/^comprehension$/, '12b What they saw in the story'], [/^language$/, '13 Language questions'], [/^pairs_quick_intro$/, '14 Message pairs (quick)'], [/^pairs_careful_intro$/, '14b Message pairs (careful)'], [/^mood$/, '15 Mood check'],
   [/^pilot_feedback$/, '15b Pilot feedback'], [/^debrief$/, '16 FINISHED'], [/^stopped$/, 'Pressed Stop']
 ];
@@ -469,7 +469,7 @@ const NARRATION = {
     'It is past midnight. The fan turns slowly above you. The house is completely quiet, but your mind is not.',
     'Morning comes, then afternoon. Everything feels heavy. Even small things take more effort than you have.',
     'Your phone lights up again and again. You watch it buzz on the table, and you let it ring.',
-    'Tonight, one thought keeps coming back, louder than the others. You pick up your phone and open the help assistant.'
+    'Tonight, one thought keeps coming back, louder than the others. You pick up your phone and open the well-being support app.'
   ],
   home: [
     'It is evening. Your spouse comes home angry. The shouting starts, and you try to keep things calm.',
@@ -657,7 +657,7 @@ function chatScreen(key, { timed, eyebrow, title }){
     ${strip(key, true)}
     <div>
     <div class="chat">
-      <div class="chat-head"><div class="avatar">${botIcon}</div><div class="who"><b>Help Assistant</b><span class="status"><i></i>Online</span></div>
+      <div class="chat-head"><div class="avatar">${botIcon}</div><div class="who"><b>${key==='practice' ? 'Help Assistant' : 'Well-being Support'}</b><span class="status"><i></i>Online</span></div>
         ${timed && CONFIG.batteryCue ? `<div class="batt" id="batt" aria-hidden="true"><svg width="26" height="14" viewBox="0 0 26 14"><rect x="1" y="1" width="21" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="23" y="4.5" width="2.2" height="5" rx="1" fill="currentColor"/><rect id="battFill" x="3" y="3" width="4" height="8" rx="1" fill="var(--alarm)"/></svg><span id="battPct">4%</span></div>` : ''}
         ${timed ? `<div class="clock" id="clock" aria-live="off">0:${String(secs).padStart(2,'0')}</div>` : ''}</div>
       ${timed ? `<div class="tbar" id="tbar"><i id="tfill"></i></div>` : ''}
@@ -820,6 +820,38 @@ async function afterQuestions(key, i){
   D.post[key] = { selfCheck: sc('self', SELF_OPTS), whyLeftOut: ticked('why').map(i=>WHY_OPTS[i]), whyOther: $('#whyOther').value.trim(),
     thinkingLanguage: THINK_OPTS[+val('think')] };
   if (trust) Object.assign(D.post[key], { trust: sc('trust', TRUST_OPTS), helps: sc('useful', HELP_OPTS), fits:val('fits'), next:val('next') });
+}
+
+/* Two replies a well-being support app could give to the same situation (shown after the awareness question).
+   Reply A reads the message broadly (everyday stress tips); Reply B reads the risk (asks one specific question, offers a helpline).
+   Labels are never shown to participants; order is random. */
+const WB_REPLIES = {
+  A: "I'm sorry you're feeling stressed. A few things often help: a short walk, a regular bedtime, less screen time before sleep, and talking to a friend. Would you like some simple breathing exercises?",
+  B: "Thank you for telling me. I want to understand what you're going through. How long has this been going on, and have you had thoughts that you don't want to be alive? If you feel unsafe right now, you can call Tele-MANAS on 14416 (free, 24 hours). I'm here to keep talking with you."
+};
+const WB_TRUST = ['Yes, I would trust it', 'I would partly trust it', 'No, I would not trust it'];
+const WB_NEXT = ['Follow its advice', 'Explain my situation in more detail', 'Ask to talk to a counsellor or a person', 'Stop using the app'];
+async function wellbeingReplies(){
+  progress();
+  const order = Math.random() < .5 ? ['A','B'] : ['B','A'];
+  const b = D.taskB[D.order[0]] || {};
+  render(`<div class="stack">
+    <div><p class="eyebrow">Two possible replies</p><h2>Imagine the app replied to your first message</h2></div>
+    <p class="small muted" style="margin:0">Your first message:</p>
+    <div class="quote">${b.text && b.text.trim() ? esc(b.text) : '<span class="muted">(No message was typed in time.)</span>'}</div>
+    <p style="margin:0">A well-being support app could reply in different ways. Here are two. Answer for each one.</p>
+    ${order.map((k,i)=>`<div class="card stack" style="gap:14px">
+      <p class="eyebrow" style="margin:0">Reply ${i+1}</p>
+      <div class="quote ai">${esc(WB_REPLIES[k])}</div>
+      ${pick('t'+k,'If you got this reply in that moment, would you trust it?',WB_TRUST)}
+      ${choice('n'+k,'What would you most likely do next?',WB_NEXT)}
+    </div>`).join('')}
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'replies');
+  gate('#go', ()=> val('tA')!==null && val('tB')!==null && val('nA') && val('nB'));
+  const t0 = now();
+  await clicked('#go');
+  const one = k => ({ trust: { answer: WB_TRUST[+val('t'+k)], score: 3 - +val('t'+k) }, next: val('n'+k), position: order.indexOf(k)+1 });
+  D.replies = { order: order.join(''), A: one('A'), B: one('B'), ms: Math.round(now()-t0) };
 }
 
 const AGE_OPTS = ['From birth, or before age 3','When I started school (about age 3 to 6)','In primary school (about age 6 to 10)','After age 10'];
@@ -1028,7 +1060,7 @@ async function debrief(saved){
     <div><p class="eyebrow">Thank you</p><h1>What this study was really about</h1></div>
     <p>We are studying the <b>words people choose</b> when they write to an AI assistant in a hurry, compared with when they have time.</p>
     ${DISTRESS && D.moodEnd && D.moodEnd <= 2 ? supportCard(true) : ''}
-    <p>In daily life, people often use a broad phrase when they mean something specific. Someone may write "${DISTRESS?'I am feeling very stressed these days.':SCENARIOS[0]==='home'?'I am not happy with my spouse. I want a divorce.':'I am not feeling well.'}" when they mean "${DISTRESS?'I have not slept or eaten properly for weeks, I have stopped going to work, and I keep thinking everyone would be better off without me.':SCENARIOS[0]==='home'?'My spouse hit me and threatened me, and I am scared to go home tonight.':'I have chest pain going down my arm.'}" An AI assistant can only respond to the words it receives, so a broad phrase can lead to the wrong kind of help.</p>
+    <p>In daily life, people often use a broad phrase when they mean something specific. Someone may write "${DISTRESS?'I am feeling very stressed these days.':SCENARIOS[0]==='home'?'I am not happy with my spouse. I want a divorce.':'I am not feeling well.'}" when they mean "${DISTRESS?'I have not slept or eaten properly for weeks, I have stopped going to work, and I keep thinking everyone would be better off without me.':SCENARIOS[0]==='home'?'My spouse hit me and threatened me, and I am scared to go home tonight.':'I have chest pain going down my arm.'}" An AI assistant can only respond to the words it receives, so a broad phrase can lead to the wrong kind of help. The two replies you saw near the end showed this: one answered the broad words with everyday tips, the other asked what was really going on.</p>
     ${(()=>{ const k = D.order[0], b = (D.taskB[k]||{}).text, a = (D.taskA[k]||{}).text; return (b||a) ? `<div class="card"><p style="margin-top:0"><b>Here is what you wrote</b></p><div class="pair">
       <div><div class="lbl">With the timer</div><div class="quote">${b && b.trim() ? esc(b) : '<span class="muted">(nothing typed in time)</span>'}</div></div>
       <div><div class="lbl">With no time limit</div><div class="quote">${a && a.trim() ? esc(a) : '<span class="muted">(nothing typed)</span>'}</div></div></div>
@@ -1103,6 +1135,7 @@ async function run(){
   for (let i=0;i<NS;i++) await comprehension(D.order[i]);
   progress();
   for (let i=0;i<NS;i++) await afterQuestions(D.order[i], i);
+  await wellbeingReplies();
   save('questions');
   await languageBackground();
   save('language');
