@@ -215,7 +215,7 @@ const CONFIG = {
   messagePairs: true,      // message-pairs test at the end (about 2 minutes): quick round, then careful round
   puzzleTrials: 8
 };
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 
 /* ========================================================================= */
 const $ = (s, r=document) => r.querySelector(s);
@@ -954,7 +954,7 @@ async function comprehension(key){
 async function awareness(){
   progress();
   render(`<div class="stack">
-    <div><p class="eyebrow">Almost done</p><h2>Two quick questions</h2></div>
+    <div><p class="eyebrow">A few questions</p><h2>Two quick questions</h2></div>
     <div class="field"><label for="guess">In your own words, what do you think this study was looking at?</label><textarea id="guess" rows="3"></textarea></div>
     ${choice('changed','Did that idea change how you wrote your messages?',['Yes','No','Not sure'])}
     <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'awareness');
@@ -1107,12 +1107,12 @@ async function run(){
   }
   save('careful');
 
+  // Awareness first: straight after Task A, before the scripted reply or any question about their message hints at the aim
+  await awareness();
+  for (let i=0;i<NS;i++) await comprehension(D.order[i]);
   progress();
   for (let i=0;i<NS;i++) await afterQuestions(D.order[i], i);
-
   save('questions');
-  await awareness();            // before anything that hints at what we measure
-  for (let i=0;i<NS;i++) await comprehension(D.order[i]);
   await languageBackground();
   save('language');
   if (CONFIG.messagePairs){ await messagePairs(); save('wordtest'); }
