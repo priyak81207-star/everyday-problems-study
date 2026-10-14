@@ -832,14 +832,14 @@ async function languageBackground(){
     ${choice('medium','What was the main medium of teaching in your school?',['English','Hindi','Another Indian language','Mixed'])}
     <div class="field"><label for="state">Which state did you mostly grow up in?</label><input type="text" id="state"></div>
     ${choice('edu','Highest education completed',['School (up to Class 12)','Diploma','Bachelor\'s degree','Master\'s degree or higher'])}
-    ${ticks('useEng','Where do you use English in a normal week?',USE_OPTS)}
+    ${ticks('useEng','Where do you use English in a normal week?',USE_OPTS.concat(['None of these']))}
     ${pick('typeEng','When you text your friends on WhatsApp, how do you usually write?',TYPE_OPTS)}
-    ${ticks('cando','Which of these could you do in English without much difficulty?',CANDO_OPTS)}
+    ${ticks('cando','Which of these could you do in English without much difficulty?',CANDO_OPTS.concat(['None of these']))}
     ${choice('gig','Have you ever worked for a delivery or ride app?',['Yes','No'])}
     <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'language');
-  gate('#go', ()=> $('#homeLang').value.trim() && $('#bestLang').value.trim() && val('ageEng')!==null && val('whereEng') && val('medium') && $('#state').value.trim() && val('edu') && val('typeEng')!==null && val('gig'));
+  gate('#go', ()=> $('#homeLang').value.trim() && $('#bestLang').value.trim() && val('ageEng')!==null && val('whereEng') && val('medium') && $('#state').value.trim() && val('edu') && ticked('useEng').length && val('typeEng')!==null && ticked('cando').length && val('gig'));
   await clicked('#go');
-  const use = ticked('useEng'), can = ticked('cando');
+  const use = ticked('useEng').filter(i=>i<USE_OPTS.length), can = ticked('cando').filter(i=>i<CANDO_OPTS.length);
   D.language = { homeLanguages: $('#homeLang').value.trim(), mostComfortable: $('#bestLang').value.trim(),
     ageStartedEnglish: AGE_OPTS[+val('ageEng')], ageStartedEnglishCode: +val('ageEng'),
     whereLearned: val('whereEng'), schoolMedium: val('medium'), stateGrewUp: $('#state').value.trim(), education: val('edu'),
@@ -897,13 +897,15 @@ async function comprehension(key){
   const set = SAW[key]; if (!set) return;
   const items = shuffle(set.real.map(t=>[t,1]).concat(set.fake.map(t=>[t,0])));
   render(`<div class="stack"><div><p class="eyebrow">About the story</p><h2>What was happening to the person in the story?</h2></div>
-    ${ticks('saw','Tick everything you noticed in the pictures.',items.map(x=>x[0]),'Tick all that apply. There are no trick questions.')}
-    <div class="btns"><button class="btn" id="go">Next</button></div></div>`, 'comprehension');
+    ${ticks('saw','Tick everything you noticed in the pictures.',items.map(x=>x[0]).concat(["I don't remember any of these"]),'Tick all that apply. There are no trick questions.')}
+    <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'comprehension');
+  gate('#go', ()=> ticked('saw').length > 0);
   await clicked('#go');
-  const t = ticked('saw');
+  const dontRemember = ticked('saw').includes(items.length);
+  const t = ticked('saw').filter(i=>i<items.length);
   D.saw = D.saw || {};
   D.saw[key] = { ticked: t.map(i=>items[i][0]), correctTicked: t.filter(i=>items[i][1]).length, ofCorrect: set.real.length,
-    wrongTicked: t.filter(i=>!items[i][1]).length, missed: set.real.filter(r=>!t.some(i=>items[i][0]===r)) };
+    wrongTicked: t.filter(i=>!items[i][1]).length, dontRemember, missed: set.real.filter(r=>!t.some(i=>items[i][0]===r)) };
 }
 async function awareness(){
   progress();
