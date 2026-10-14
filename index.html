@@ -211,11 +211,11 @@ const CONFIG = {
   // Other stories built in: 'home', 'health', 'fraud', 'rider'. Each extra story adds about 5 minutes.
   scenarios: ['distress'],
   beatMinMs: 2500,         // earliest "Next" on each picture of the story (reading is NOT timed)
-  trustQuestions: true,    // optional add-on: scripted reply + trust items
+  trustQuestions: false,   // off: the scripted reply + trust items are not part of Study 1
   messagePairs: true,      // message-pairs test at the end (about 2 minutes): quick round, then careful round
   puzzleTrials: 8
 };
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 
 /* ========================================================================= */
 const $ = (s, r=document) => r.querySelector(s);
@@ -568,11 +568,10 @@ async function aboutYou(){
     <div><p class="eyebrow">Before we start</p><h2>A little about you</h2></div>
     <div class="field"><label for="age">Your age</label><input type="number" id="age" inputmode="numeric" min="18" max="99" style="max-width:140px"></div>
     ${choice('gender','Gender',['Woman','Man','Non-binary','Prefer not to say'])}
-    ${choice('devtype','What are you using right now?',['Phone','Tablet','Laptop or computer'])}
     <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'about');
-  gate('#go', ()=>{ const a=+$('#age').value; return a>=18 && a<=99 && val('gender') && val('devtype'); });
+  gate('#go', ()=>{ const a=+$('#age').value; return a>=18 && a<=99 && val('gender'); });
   await clicked('#go');
-  D.about = { age: +$('#age').value, gender: val('gender'), device: val('devtype') };
+  D.about = { age: +$('#age').value, gender: val('gender'), device: isTouch ? (Math.min(screen.width, screen.height) >= 600 ? 'Tablet' : 'Phone') : 'Laptop or computer' };
 }
 
 async function howItWorks(){
@@ -742,15 +741,13 @@ async function recallScreen(){
 }
 
 const RUSH_OPTS = ['Calm', 'A little rushed', 'Quite rushed', 'Very rushed'];
-const REAL_OPTS = ['Not real at all', 'A little real', 'Quite real', 'Very real'];
 async function feelScreen(){
   render(`<div class="stack"><div><p class="eyebrow">Quick check</p><h2>How was that?</h2></div>
     ${pick('rush','While you were writing that message, how did you feel?',RUSH_OPTS)}
-    ${pick('real','How real did the situation feel to you?',REAL_OPTS)}
     <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'feel');
-  gate('#go', ()=> val('rush')!==null && val('real')!==null);
+  gate('#go', ()=> val('rush')!==null);
   await clicked('#go');
-  return { feltRushed: { answer: RUSH_OPTS[+val('rush')], score: +val('rush') + 1 }, feltReal: { answer: REAL_OPTS[+val('real')], score: +val('real') + 1 } };
+  return { feltRushed: { answer: RUSH_OPTS[+val('rush')], score: +val('rush') + 1 } };
 }
 async function quickRound(key, label){
   await interstitial(label, key==='practice' ? 'Practice round' : 'Get ready', 'Start');
@@ -826,7 +823,6 @@ async function afterQuestions(key, i){
 }
 
 const AGE_OPTS = ['From birth, or before age 3','When I started school (about age 3 to 6)','In primary school (about age 6 to 10)','After age 10'];
-const TYPE_OPTS = ['Mostly English words, for example "I am coming"','Mostly Hindi or another language in English letters, for example "main aa raha hoon"','Mostly an Indian script, for example "मैं आ रहा हूँ"','A mix of these'];
 const USE_OPTS = ['Talking with my family','Talking with friends','At work or college','Texting friends','Social media posts and comments','Watching videos or films','Reading news','Talking to customer support or chatbots'];
 const CANDO_OPTS = ['Ask for directions or order food','Follow a conversation between two people speaking fast','Follow the news on TV or YouTube','Explain a health problem to a doctor','Write a message asking a stranger for help','Write a complaint email to a company','Argue for my opinion in a meeting or class','Read a novel for pleasure'];
 async function languageBackground(){
@@ -834,26 +830,21 @@ async function languageBackground(){
   render(`<div class="stack">
     <div><p class="eyebrow">About your languages</p><h2>A few questions about the languages you use</h2></div>
     <div class="field"><label for="homeLang">Which language or languages did your family speak at home when you were a child?</label><input type="text" id="homeLang"></div>
-    <div class="field"><label for="bestLang">Which language are you most comfortable in today?</label><input type="text" id="bestLang"></div>
     ${pick('ageEng','When did you start learning English?',AGE_OPTS)}
     ${choice('whereEng','Where did you mainly learn English?',['At home: my family spoke English with me','At school','Both at home and at school','Somewhere else'])}
     ${choice('medium','What was the main medium of teaching in your school?',['English','Hindi','Another Indian language','Mixed'])}
-    <div class="field"><label for="state">Which state did you mostly grow up in?</label><input type="text" id="state"></div>
     ${choice('edu','Highest education completed',['School (up to Class 12)','Diploma','Bachelor\'s degree','Master\'s degree or higher'])}
     ${ticks('useEng','Where do you use English in a normal week?',USE_OPTS.concat(['None of these']))}
-    ${pick('typeEng','When you text your friends on WhatsApp, how do you usually write?',TYPE_OPTS)}
     ${ticks('cando','Which of these could you do in English without much difficulty?',CANDO_OPTS.concat(['None of these']))}
-    ${choice('gig','Have you ever worked for a delivery or ride app?',['Yes','No'])}
     <div class="btns"><button class="btn" id="go" disabled>Next</button></div></div>`, 'language');
-  gate('#go', ()=> $('#homeLang').value.trim() && $('#bestLang').value.trim() && val('ageEng')!==null && val('whereEng') && val('medium') && $('#state').value.trim() && val('edu') && ticked('useEng').length && val('typeEng')!==null && ticked('cando').length && val('gig'));
+  gate('#go', ()=> $('#homeLang').value.trim() && val('ageEng')!==null && val('whereEng') && val('medium') && val('edu') && ticked('useEng').length && ticked('cando').length);
   await clicked('#go');
   const use = ticked('useEng').filter(i=>i<USE_OPTS.length), can = ticked('cando').filter(i=>i<CANDO_OPTS.length);
-  D.language = { homeLanguages: $('#homeLang').value.trim(), mostComfortable: $('#bestLang').value.trim(),
+  D.language = { homeLanguages: $('#homeLang').value.trim(),
     ageStartedEnglish: AGE_OPTS[+val('ageEng')], ageStartedEnglishCode: +val('ageEng'),
-    whereLearned: val('whereEng'), schoolMedium: val('medium'), stateGrewUp: $('#state').value.trim(), education: val('edu'),
+    whereLearned: val('whereEng'), schoolMedium: val('medium'), education: val('edu'),
     englishUseContexts: use.map(i=>USE_OPTS[i]), englishUseCount: use.length,
-    whatsappWriting: TYPE_OPTS[+val('typeEng')].replace(/, for example.*/,''),
-    canDo: can.map(i=>CANDO_OPTS[i]), canDoCount: can.length, gigWork: val('gig') };
+    canDo: can.map(i=>CANDO_OPTS[i]), canDoCount: can.length };
 }
 
 /* Message pairs: replaces LexTALE. Two short messages to a mental well-being support assistant, one broad and one precise.
