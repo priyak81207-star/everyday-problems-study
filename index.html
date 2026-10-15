@@ -215,7 +215,7 @@ const CONFIG = {
   messagePairs: true,      // message-pairs test at the end (about 2 minutes): quick round, then careful round
   puzzleTrials: 4
 };
-const VERSION = '2.0.0';
+const VERSION = '2.0.1';
 
 /* ========================================================================= */
 const $ = (s, r=document) => r.querySelector(s);
@@ -1089,8 +1089,16 @@ async function debrief(saved){
       <ul class="plain" style="margin:0"><li>Emergency: <b>112</b></li>${SCENARIOS.includes('home')?'<li>Women Helpline: <b>181</b></li><li>Tele-MANAS (free mental health support, any gender): <b>14416</b></li>':''}${SCENARIOS.includes('health')?'<li>Ambulance: <b>108</b></li>':''}${SCENARIOS.includes('fraud')?'<li>Money lost to online or phone fraud: <b>1930</b> (National Cyber Crime Helpline) or cybercrime.gov.in</li>':''}</ul></div>
     ${saved ? '' : downloadBlock()}
     ${PREVIEW ? `<div class="card small"><p><b>Preview mode.</b> Nothing was sent. This is the data a real session records:</p><pre class="dump">${esc(JSON.stringify(D, null, 1))}</pre></div>` : ''}
-    <p class="muted small">You can close this page now.</p></div>`, 'debrief');
+    <div class="btns"><button class="btn" id="finish">Finish</button></div></div>`, 'debrief');
   if (!saved) wireDownload();
+  $('#finish').addEventListener('click', ()=>{
+    D.finishedClickAt = iso();
+    render(`<div class="stack" style="padding-top:10vh;text-align:center;align-items:center">
+      <p class="eyebrow">All done</p><h1>Thank you for taking part</h1>
+      <p>${D.withdrawn ? 'Your answers will be removed, as you asked.' : 'Your answers have been saved.'} You can now close this tab.</p>
+      <p class="small muted">Your code: <span class="code" style="user-select:all">${esc(pid)}</span></p></div>`, 'finished');
+    try { window.close(); } catch(e) {}
+  });
   $('#withdraw').addEventListener('click', async ()=>{
     $('#withdraw').disabled = true;
     D.withdrawn = true; D.withdrawnAt = iso();
